@@ -237,6 +237,59 @@ def predict_from_data_uji():
         })
 
     return jsonify(predictions)
+# Route to return training data from the database
+# Route to return training data from the database
+@app.route('/data_train', methods=['GET'])
+def get_data_train():
+    # Connect to the database
+    db = connect_db()
+    cursor = db.cursor()
+
+    # Query to fetch training data from 'data_banjir'
+    query = "SELECT Wilayah, Bulan, Tahun, Curah_Hujan, Suhu, Tinggi_Muka_Air, Potensi_Banjir FROM data_banjir ORDER BY Wilayah ASC,  Tahun ASC"
+    cursor.execute(query)
+
+    # Fetch data and load into a list of dictionaries
+    columns = ['Wilayah', 'Bulan', 'Tahun', 'Curah_Hujan', 'Suhu', 'Tinggi_Muka_Air', 'Potensi_Banjir']
+    data_train = cursor.fetchall()
+    data_train_list = [dict(zip(columns, row)) for row in data_train]
+
+    # Close the database connection
+    cursor.close()
+    db.close()
+
+    # Return the data in JSON format
+    if data_train_list:
+        return jsonify(data_train_list), 200
+    else:
+        return jsonify({'message': 'No training data found'}), 404
+
+# Route to return testing data from the database
+@app.route('/data_test', methods=['GET'])
+def get_data_test():
+    # Connect to the database
+    db = connect_db()
+    cursor = db.cursor()
+
+    # Query to fetch testing data from 'data_uji'
+    query = "SELECT Wilayah, Bulan, Tahun, Curah_Hujan, Suhu, Tinggi_Muka_Air FROM data_uji"
+    cursor.execute(query)
+
+    # Fetch data and load into a list of dictionaries
+    columns = ['Wilayah', 'Bulan', 'Tahun', 'Curah_Hujan', 'Suhu', 'Tinggi_Muka_Air']
+    data_test = cursor.fetchall()
+    data_test_list = [dict(zip(columns, row)) for row in data_test]
+
+    # Close the database connection
+    cursor.close()
+    db.close()
+
+    # Return the data in JSON format
+    if data_test_list:
+        return jsonify(data_test_list), 200
+    else:
+        return jsonify({'message': 'No testing data found'}), 404
+
 
 # Index route to display HTML page
 @app.route('/')

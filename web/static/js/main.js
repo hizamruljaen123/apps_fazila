@@ -6,71 +6,44 @@ document.addEventListener('DOMContentLoaded', function() {
         maxZoom: 19,
     }).addTo(map);
 
-    // Initialize year and month select elements
+    // Initialize year select and button for map display
     const yearSelect = document.getElementById('yearSelect');
-    const monthSelect = document.getElementById('monthSelect');
+    const yearTabs = document.getElementById('yearTabs');
+    const tabContent = document.getElementById('tabContent');
 
-    // Populate year and month options
-    populateYearMonthSelect();
+    // Store API data globally after fetching once
+    let floodData = [];
 
-    // Attach event listener to navigation button
-    document.getElementById('navigateButton').onclick = function() {
-        const selectedYear = yearSelect.value;
-        const selectedMonth = monthSelect.value;
-        fetchDataAndDisplay(selectedYear, selectedMonth);
-    };
+    // Fetch data from API once
+    fetch('/predict')
+        .then(response => response.json())
+        .then(data => {
+            floodData = data; // Store the fetched data globally
+            populateYearSelect(); // Populate year options
+            populateYearTabs([2023, 2024]); // Initialize nav tabs for each year
+        })
+        .catch(error => console.error('Error fetching data:', error));
 
-    // Fetch data and display in table and map
-    function fetchDataAndDisplay(year, month) {
-        const apiUrl = `http://127.0.0.1:5000/predict?year=${year}&month=${month}`;
-        fetch(apiUrl)
-            .then(response => response.json())
-            .then(data => {
-                displayDataInTable(data);
-                displayDataOnMap(data, map);
-            })
-            .catch(error => console.error('Error fetching data:', error));
-    }
-
-    // Populate year and month select options
-    function populateYearMonthSelect() {
-        const years = [2023, 2024, 2025];
-        const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-
+    // Populate year select options
+    function populateYearSelect() {
+        const years = [2023, 2024];
         years.forEach(year => {
             const option = document.createElement('option');
             option.value = year;
             option.textContent = year;
             yearSelect.appendChild(option);
         });
-
-        months.forEach((month, index) => {
-            const option = document.createElement('option');
-            option.value = month;
-            option.textContent = month;
-            monthSelect.appendChild(option);
-        });
     }
 
-    // Display data in table
-    function displayDataInTable(data) {
-        const tableBody = document.getElementById('tableBody');
-        tableBody.innerHTML = ''; // Clear existing table rows
-
-        data.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${item.Wilayah}</td>
-                <td>${item.Bulan}</td>
-                <td>${item.Tahun}</td>
-                <td>${item.Prediksi}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-    }
+    // Handle "Tampilkan Peta" button click
+    document.getElementById('showMap').onclick = function() {
+        const selectedYear = parseInt(yearSelect.value, 10);
+        const filteredData = floodData.filter(item => item.Tahun === selectedYear);
+        displayDataOnMap(filteredData);
+    };
 
     // Display data on map
-    function displayDataOnMap(data, map) {
+    function displayDataOnMap(data) {
         // Clear existing markers
         map.eachLayer((layer) => {
             if (!!layer.toGeoJSON) {
@@ -78,10 +51,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
+        // Add tile layer back to the map
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
         }).addTo(map);
 
+        // Add filtered data markers to the map
         data.forEach(item => {
             let color;
             switch(item.Prediksi) {
@@ -105,167 +80,163 @@ document.addEventListener('DOMContentLoaded', function() {
                 weight: 1,
                 opacity: 1,
                 fillOpacity: 0.8
-            }).addTo(map).bindPopup(`<b>${item.Wilayah}</b><br>${item.Prediksi}`);
+            }).addTo(map).bindPopup(`<b>${item.Wilayah}</b><br>Prediksi: ${item.Prediksi}<br>Bulan: ${item.Bulan}, Tahun: ${item.Tahun}`);
         });
     }
-});
 
-// Fungsi utama untuk menampilkan grafik
-// Fungsi utama untuk menampilkan grafik dan tabel
-function displayFloodPredictionChartsAndTable() {
-// Fetch data from the predict endpoint
-fetch('http://127.0.0.1:5000/predict')
-    .then(response => response.json())
-    .then(data => {
-        // Group data by year
-        var groupedData = groupDataByYear(data);
+    // Populate year tabs dynamically for tables
+    function populateYearTabs(years) {
+        years.forEach((year, index) => {
+            // Create the tab for the year
+            const tabItem = document.createElement('li');
+            tabItem.className = "nav-item";
+            tabItem.innerHTML = `
+                <a class="nav-link ${index === 0 ? 'active' : ''}" id="tab-${year}" data-toggle="tab" href="#content-${year}" role="tab">${year}</a>
+            `;
+            yearTabs.appendChild(tabItem);
 
-        // Get the container for the charts
-        var chartsContainer = document.getElementById('charts');
-        chartsContainer.innerHTML = ''; // Clear existing charts
+            // Create the content for the tab
+            const tabContentItem = document.createElement('div');
+            tabContentItem.className = `tab-pane fade ${index === 0 ? 'show active' : ''}`;
+            tabContentItem.id = `content-${year}`;
+            tabContentItem.role = "tabpanel";
+            tabContent.appendChild(tabContentItem);
 
-        // Get the container for the tables
-        var tablesContainer = document.getElementById('tables');
-        tablesContainer.innerHTML = ''; // Clear existing tables
-
-        // Loop through each year and create a chart and table
-        Object.keys(groupedData).forEach(year => {
-            // Create a new div for each chart
-            var chartDiv = document.createElement('div');
-            chartDiv.id = `chart-${year}`;
-            chartDiv.className = 'chart-container';
-            chartsContainer.appendChild(chartDiv);
-
-            // Create a new div for each table
-            var tableDiv = document.createElement('div');
-            tableDiv.id = `table-${year}`;
-            tableDiv.className = 'table-container';
-            tablesContainer.appendChild(tableDiv);
-
-            // Process the data for this year
-            var regions = processPredictionData(groupedData[year]);
-
-            // Prepare data for the chart
-            var categories = ['Aman', 'Siaga', 'Awas'];
-            var regionsNames = Object.keys(regions);
-            var seriesData = prepareSeriesData(categories, regions, regionsNames);
-
-            // Initialize the ECharts instance for this year
-            var myChart = echarts.init(document.getElementById(`chart-${year}`));
-
-            // Configure the ECharts option
-            var option = {
-                title: {
-                    text: `Frekuensi Prediksi Banjir Tahun ${year}`,
-                    left: 'center'
-                },
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'shadow'
-                    }
-                },
-                legend: {
-                    data: categories,
-                    top: 'bottom'
-                },
-                xAxis: {
-                    type: 'category',
-                    data: regionsNames,
-                    axisLabel: {
-                        rotate: 45,
-                        interval: 0
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    name: 'Jumlah Prediksi'
-                },
-                series: seriesData
-            };
-
-            // Display the chart
-            myChart.setOption(option);
-
-            // Generate and display the table for this year
-            displayDataInTable(groupedData[year], tableDiv);
+            // Fill the content with the table for the year
+            const filteredData = floodData.filter(item => item.Tahun === year);
+            displayDataInTable(filteredData, tabContentItem);
         });
-    })
-    .catch(error => console.error('Error fetching data:', error));
-}
-
-// Fungsi untuk mengelompokkan data berdasarkan tahun
-function groupDataByYear(data) {
-var groupedData = {};
-data.forEach(item => {
-    var year = item.Tahun;
-    if (!groupedData[year]) {
-        groupedData[year] = [];
     }
-    groupedData[year].push(item);
-});
-return groupedData;
-}
 
-// Fungsi untuk memproses data prediksi menjadi format yang dibutuhkan
-function processPredictionData(data) {
-var regions = {};
-data.forEach(item => {
-    if (!regions[item.Wilayah]) {
-        regions[item.Wilayah] = {
-            'Aman': 0,
-            'Siaga': 0,
-            'Awas': 0
-        };
+    // Display data in table for each year
+    function displayDataInTable(data, container) {
+        const table = document.createElement('table');
+        table.className = 'table table-bordered';
+
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+            <tr>
+                <th>Wilayah</th>
+                <th>Bulan</th>
+                <th>Prediksi</th>
+                <th>Koordinat (Latitude, Longitude)</th>
+            </tr>
+        `;
+
+        const tbody = document.createElement('tbody');
+        data.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.Wilayah}</td>
+                <td>${item.Bulan}</td>
+                <td>${item.Prediksi}</td>
+                <td>${item.Koordinat.Latitude}, ${item.Koordinat.Longitude}</td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        container.appendChild(table);
     }
-    regions[item.Wilayah][item.Prediksi]++;
+    
 });
-return regions;
+function startTraining() {
+    // Set the API URL
+    const apiUrl = 'http://127.0.0.1:5000/train';
+
+    // Fetch data from the training API
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            // Parse the response and display it in the textarea
+            const result = `Message: ${data.message}\n` +
+                           `Train Accuracy: ${data.train_accuracy}\n` +
+                           `Test Accuracy: ${data.test_accuracy}\n` +
+                           `Train MSE: ${data.train_mse}\n` +
+                           `Test MSE: ${data.test_mse}`;
+
+            // Display the result in the textarea
+            document.getElementById('trainResult').value = result;
+        })
+        .catch(error => {
+            // Handle errors
+            document.getElementById('trainResult').value = 'Error: ' + error.message;
+        });
 }
 
-// Fungsi untuk menyiapkan data seri untuk grafik
-function prepareSeriesData(categories, regions, regionsNames) {
-return categories.map(category => {
-    return {
-        name: category,
-        type: 'bar',
-        stack: 'total',
-        data: regionsNames.map(region => regions[region][category])
-    };
-});
+// Array to define the custom order of short month names
+const shortMonthOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function loadDataLatih() {
+    // Fetch data latih from API
+    fetch('/data_train')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.querySelector('#dataLatihTable tbody');
+            tbody.innerHTML = ''; // Clear previous rows
+
+            // Sort data based on shortMonthOrder and Tahun
+            data.sort((a, b) => {
+                const monthDiff = shortMonthOrder.indexOf(a.Bulan) - shortMonthOrder.indexOf(b.Bulan);
+                if (monthDiff !== 0) {
+                    return monthDiff; // Sort by month
+                } else {
+                    return a.Tahun - b.Tahun; // If months are the same, sort by year
+                }
+            });
+
+            // Insert sorted data into the table
+            data.forEach(item => {
+                const row = `
+                    <tr>
+                        <td>${item.Wilayah}</td>
+                        <td>${item.Bulan}</td>
+                        <td>${item.Tahun}</td>
+                        <td>${item.Curah_Hujan}</td>
+                        <td>${item.Suhu}</td>
+                        <td>${item.Tinggi_Muka_Air}</td>
+                        <td>${item.Potensi_Banjir}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        })
+        .catch(error => console.error('Error fetching data latih:', error));
 }
 
-// Fungsi untuk menampilkan data dalam tabel
-function displayDataInTable(data, container) {
-var table = document.createElement('table');
-table.className = 'table table-bordered';
+function loadDataUji() {
+    // Fetch data uji from API
+    fetch('/data_test')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.querySelector('#dataUjiTable tbody');
+            tbody.innerHTML = ''; // Clear previous rows
 
-var thead = document.createElement('thead');
-thead.innerHTML = `
-    <tr>
-        <th>Wilayah</th>
-        <th>Bulan</th>
-        <th>Tahun</th>
-        <th>Prediksi</th>
-    </tr>
-`;
+            // Sort data based on shortMonthOrder and Tahun
+            data.sort((a, b) => {
+                const monthDiff = shortMonthOrder.indexOf(a.Bulan) - shortMonthOrder.indexOf(b.Bulan);
+                if (monthDiff !== 0) {
+                    return monthDiff; // Sort by month
+                } else {
+                    return a.Tahun - b.Tahun; // If months are the same, sort by year
+                }
+            });
 
-var tbody = document.createElement('tbody');
-data.forEach(item => {
-    var row = document.createElement('tr');
-    row.innerHTML = `
-        <td>${item.Wilayah}</td>
-        <td>${item.Bulan}</td>
-        <td>${item.Tahun}</td>
-        <td>${item.Prediksi}</td>
-    `;
-    tbody.appendChild(row);
-});
-
-table.appendChild(thead);
-table.appendChild(tbody);
-container.appendChild(table);
+            // Insert sorted data into the table
+            data.forEach(item => {
+                const row = `
+                    <tr>
+                        <td>${item.Wilayah}</td>
+                        <td>${item.Bulan}</td>
+                        <td>${item.Tahun}</td>
+                        <td>${item.Curah_Hujan}</td>
+                        <td>${item.Suhu}</td>
+                        <td>${item.Tinggi_Muka_Air}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        })
+        .catch(error => console.error('Error fetching data uji:', error));
 }
-
-// Panggil fungsi utama untuk menampilkan grafik dan tabel
-displayFloodPredictionChartsAndTable();

@@ -42,18 +42,18 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                Orders
+                            <a class="nav-link" id="trainButton" data-toggle="modal" data-target="#trainModal">
+                                Training Model
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                Products
+                            <a class="nav-link" data-toggle="modal" data-target="#dataLatihModal" onclick="loadDataLatih()">
+                                Data Latih
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                Customers
+                            <a class="nav-link" data-toggle="modal" data-target="#dataUjiModal" onclick="loadDataUji()">
+                                Data Uji
                             </a>
                         </li>
                     </ul>
@@ -65,25 +65,125 @@
                     <h1 class="h2">Dashboard</h1>
                 </div>
 
-                <!-- Year Selection -->
+                <!-- Year Selection Buttons -->
                 <div class="form-group">
                     <label for="yearSelect">Pilih Tahun:</label>
-                    <select id="yearSelect" class="form-control" onchange="displayFloodPredictionChartsAndTable()">
+                    <select id="yearSelect" class="form-control">
                         <!-- Tahun akan diisi secara dinamis oleh JavaScript -->
                     </select>
+                    <div class="text-right">
+                        <button id="showMap" class="btn btn-primary mt-2">Tampilkan Peta</button>
+                    </div>
+                    
                 </div>
 
                 <!-- Leaflet Map -->
                 <div id="map" class="mb-4"></div>
 
-                <!-- Dynamic Chart Containers -->
-                <div id="charts"></div>
+                <!-- Nav Tabs for Tables -->
+                <ul class="nav nav-tabs" id="yearTabs" role="tablist">
+                    <!-- Tabs akan diisi secara dinamis oleh JavaScript -->
+                </ul>
 
-                <!-- Dynamic Table Containers -->
-                <div id="tables"></div>
+                <div class="tab-content" id="tabContent">
+                    <!-- Konten tabel akan diisi secara dinamis oleh JavaScript -->
+                </div>
+
             </main>
         </div>
     </div>
+    <div class="modal fade" id="trainModal" tabindex="-1" role="dialog" aria-labelledby="trainModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="trainModalLabel">Model Training Status</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <textarea id="trainResult" class="form-control" rows="8" readonly></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" id="startTraining" onclick="startTraining()">Start Training</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal for Data Latih -->
+    <div class="modal fade" id="dataLatihModal" tabindex="-1" role="dialog" aria-labelledby="dataLatihLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dataLatihLabel">Daftar Data Latih</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered" id="dataLatihTable">
+                        <thead>
+                            <tr>
+                                <th>Wilayah</th>
+                                <th>Bulan</th>
+                                <th>Tahun</th>
+                                <th>Curah Hujan</th>
+                                <th>Suhu</th>
+                                <th>Tinggi Muka Air</th>
+                                <th>Potensi Banjir</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data Latih Rows will be inserted here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Data Uji -->
+    <div class="modal fade" id="dataUjiModal" tabindex="-1" role="dialog" aria-labelledby="dataUjiLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dataUjiLabel">Daftar Data Uji</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered" id="dataUjiTable">
+                        <thead>
+                            <tr>
+                                <th>Wilayah</th>
+                                <th>Bulan</th>
+                                <th>Tahun</th>
+                                <th>Curah Hujan</th>
+                                <th>Suhu</th>
+                                <th>Tinggi Muka Air</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data Uji Rows will be inserted here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+
 
     <!-- ECharts JS -->
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.js"></script>
