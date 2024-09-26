@@ -1,32 +1,59 @@
 // Inisialisasi dashboard setelah DOM siap
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize map
-    const map = L.map('map').setView([5.0517222, 97.3078233], 9);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-    }).addTo(map);
 
-    // Initialize year select and button for map display
+    function initMap() {
+        // Inisialisasi peta dengan view default
+        const map = L.map('map').setView([5.0621243, 97.3258354], 10);
+
+        // Tambahkan tile layer dari OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Koordinat lokasi (pin default)
+        const coordinates = {
+            'Baktiya': [5.0621243, 97.3258354],
+            'Lhoksukon': [5.0517222, 97.3078233],
+            'Langkahan': [4.9211586, 97.1261701],
+            'Cot Girek': [4.8616275, 97.2673567],
+            'Matangkuli': [5.0306322, 97.2316173],
+            'Tanah Luas': [4.9826373, 97.0425453],
+            'Stamet Aceh Utara': [5.228798, 96.9449662]
+        };
+
+        // Tampilkan marker default pada peta
+        const defaultMarkers = [];
+        for (const [location, latLng] of Object.entries(coordinates)) {
+            const marker = L.marker(latLng).addTo(map)
+                .bindPopup(location)
+                .openPopup();
+            defaultMarkers.push(marker);
+        }
+
+        return { map, defaultMarkers };
+    }
+
+    const { map, defaultMarkers } = initMap();  // Inisialisasi peta dan marker default
+
+    // Variabel yang berkaitan dengan elemen DOM
     const yearSelect = document.getElementById('yearSelect');
     const yearTabs = document.getElementById('yearTabs');
     const tabContent = document.getElementById('tabContent');
+    let floodData = []; // Menyimpan data API secara global
 
-    // Store API data globally after fetching once
-    let floodData = [];
-
-    // Fetch data from API once
+    // Ambil data dari API dan populasi elemen UI
     fetch('/predict')
         .then(response => response.json())
         .then(data => {
-            floodData = data; // Store the fetched data globally
-            populateYearSelect(); // Populate year options
-            populateYearTabs([2023, 2024]); // Initialize nav tabs for each year
+            floodData = data; // Simpan data ke variabel global
+            populateYearSelect([2023, 2024]); // Populasi dropdown tahun
+            populateYearTabs([2023, 2024]); // Inisialisasi nav tabs berdasarkan tahun
         })
         .catch(error => console.error('Error fetching data:', error));
 
-    // Populate year select options
-    function populateYearSelect() {
-        const years = [2023, 2024];
+    // Populasi opsi tahun pada select element
+    function populateYearSelect(years) {
         years.forEach(year => {
             const option = document.createElement('option');
             option.value = year;
@@ -35,59 +62,41 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle "Tampilkan Peta" button click
+    // Event handler untuk tombol "Tampilkan Peta"
     document.getElementById('showMap').onclick = function() {
         const selectedYear = parseInt(yearSelect.value, 10);
         const filteredData = floodData.filter(item => item.Tahun === selectedYear);
+
+        // Hapus marker default terlebih dahulu
+        defaultMarkers.forEach(marker => map.removeLayer(marker));
+
         displayDataOnMap(filteredData);
     };
 
-    // Display data on map
+    // Tampilkan data pada peta berdasarkan tahun yang dipilih
     function displayDataOnMap(data) {
-        // Clear existing markers
-        map.eachLayer((layer) => {
-            if (!!layer.toGeoJSON) {
-                map.removeLayer(layer);
-            }
+        map.eachLayer(layer => {  // Hapus marker lama
+            if (layer.toGeoJSON) map.removeLayer(layer);
         });
 
-        // Add tile layer back to the map
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-        }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
-        // Add filtered data markers to the map
         data.forEach(item => {
-            let color;
-            switch(item.Prediksi) {
-                case 'Aman':
-                    color = 'green';
-                    break;
-                case 'Siaga':
-                    color = 'orange';
-                    break;
-                case 'Awas':
-                    color = 'red';
-                    break;
-                default:
-                    color = 'blue';
-            }
+            const color = item.Prediksi === 'Aman' ? 'green' : item.Prediksi === 'Siaga' ? 'orange' : item.Prediksi === 'Awas' ? 'red' : 'blue';
 
             L.circleMarker([item.Koordinat.Latitude, item.Koordinat.Longitude], {
                 radius: 8,
                 fillColor: color,
                 color: color,
                 weight: 1,
-                opacity: 1,
                 fillOpacity: 0.8
             }).addTo(map).bindPopup(`<b>${item.Wilayah}</b><br>Prediksi: ${item.Prediksi}<br>Bulan: ${item.Bulan}, Tahun: ${item.Tahun}`);
         });
     }
 
-    // Populate year tabs dynamically for tables
+    // Populasi tabs berdasarkan tahun
     function populateYearTabs(years) {
         years.forEach((year, index) => {
-            // Create the tab for the year
             const tabItem = document.createElement('li');
             tabItem.className = "nav-item";
             tabItem.innerHTML = `
@@ -95,32 +104,30 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             yearTabs.appendChild(tabItem);
 
-            // Create the content for the tab
             const tabContentItem = document.createElement('div');
             tabContentItem.className = `tab-pane fade ${index === 0 ? 'show active' : ''}`;
             tabContentItem.id = `content-${year}`;
             tabContentItem.role = "tabpanel";
             tabContent.appendChild(tabContentItem);
 
-            // Fill the content with the table for the year
             const filteredData = floodData.filter(item => item.Tahun === year);
             displayDataInTable(filteredData, tabContentItem);
         });
     }
 
-    // Display data in table for each year
+    // Tampilkan data dalam bentuk tabel
     function displayDataInTable(data, container) {
         const table = document.createElement('table');
         table.className = 'table table-bordered';
-
-        const thead = document.createElement('thead');
-        thead.innerHTML = `
-            <tr>
-                <th>Wilayah</th>
-                <th>Bulan</th>
-                <th>Prediksi</th>
-                <th>Koordinat (Latitude, Longitude)</th>
-            </tr>
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>Wilayah</th>
+                    <th>Bulan</th>
+                    <th>Prediksi</th>
+                    <th>Koordinat (Latitude, Longitude)</th>
+                </tr>
+            </thead>
         `;
 
         const tbody = document.createElement('tbody');
@@ -135,12 +142,12 @@ document.addEventListener('DOMContentLoaded', function() {
             tbody.appendChild(row);
         });
 
-        table.appendChild(thead);
         table.appendChild(tbody);
         container.appendChild(table);
     }
-    
+
 });
+
 function startTraining() {
     // Set the API URL
     const apiUrl = 'http://127.0.0.1:5000/train';
@@ -240,3 +247,7 @@ function loadDataUji() {
         })
         .catch(error => console.error('Error fetching data uji:', error));
 }
+
+document.getElementById('refreshPage').onclick = function() {
+    location.reload(); // Ini akan me-refresh halaman
+};

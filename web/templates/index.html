@@ -15,7 +15,7 @@
             height: 400px;
         }
         #map {
-            height: 400px;
+            height: 700px;
         }
         .chart-container {
             width: 100%;
@@ -73,6 +73,7 @@
                     </select>
                     <div class="text-right">
                         <button id="showMap" class="btn btn-primary mt-2">Tampilkan Peta</button>
+                        <button  class="btn btn-danger mt-2" id="refreshPage">Reset Maps</button>
                     </div>
                     
                 </div>
@@ -182,6 +183,40 @@
 </div>
 
 </div>
+
+<script>
+    function initMap() {
+    // Inisialisasi peta dengan view default
+    var map = L.map('map').setView([5.0621243, 97.3258354], 10);
+
+    // Tambahkan tile layer dari OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Koordinat lokasi
+    var coordinates = {
+        'Baktiya': [5.0621243, 97.3258354],
+        'Lhoksukon': [5.0517222, 97.3078233],
+        'Langkahan': [4.9211586, 97.1261701],
+        'Cot Girek': [4.8616275, 97.2673567],
+        'Matangkuli': [5.0306322, 97.2316173],
+        'Tanah Luas': [4.9826373, 97.0425453],
+        'Stamet Aceh Utara': [5.228798, 96.9449662]
+    };
+
+    // Loop melalui setiap lokasi dan tambahkan marker pada peta
+    for (var location in coordinates) {
+        if (coordinates.hasOwnProperty(location)) {
+            var latLng = coordinates[location];
+            L.marker(latLng).addTo(map)
+                .bindPopup(location)
+                .openPopup();
+        }
+    }
+}
+initMap()
+</script>
 
 
 

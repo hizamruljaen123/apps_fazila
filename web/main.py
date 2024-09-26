@@ -8,9 +8,9 @@ from scipy.optimize import leastsq
 from sklearn.metrics import mean_squared_error, accuracy_score
 import pickle
 import os
-
+from flask_cors import CORS
 app = Flask(__name__)
-
+CORS(app)
 # Global variables to store trained model and data
 model = None
 scaler = None
