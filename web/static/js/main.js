@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
             floodData = data; // Simpan data ke variabel global
             populateYearSelect([2023, 2024]); // Populasi dropdown tahun
             populateYearTabs([2023, 2024]); // Inisialisasi nav tabs berdasarkan tahun
+            displayPredictionChart(data)
         })
         .catch(error => console.error('Error fetching data:', error));
 
@@ -61,6 +62,49 @@ document.addEventListener('DOMContentLoaded', function() {
             yearSelect.appendChild(option);
         });
     }
+
+    // Fungsi untuk menampilkan grafik frekuensi kategori prediksi
+    function displayPredictionChart(data) {
+        // Menghitung frekuensi kategori per tahun
+        const frequencyData = {
+            2023: { 'Aman': 0, 'Siaga': 0, 'Awas': 0 },
+            2024: { 'Aman': 0, 'Siaga': 0, 'Awas': 0 }
+        };
+
+        data.forEach(item => {
+            if (frequencyData[item.Tahun]) {
+                frequencyData[item.Tahun][item.Prediksi]++;
+            }
+        });
+
+        // Siapkan data untuk grafik
+        const years = Object.keys(frequencyData);
+        const labels = ['Aman', 'Siaga', 'Awas', 'Waspada'];
+
+        const seriesData = labels.map(label => ({
+            x: years,
+            y: years.map(year => frequencyData[year][label]),
+            type: 'bar',
+            name: label
+        }));
+
+        // Buat grafik menggunakan Plotly
+        const layout = {
+            title: 'Frekuensi Kategori Prediksi per Tahun',
+            barmode: 'group',
+            xaxis: { title: 'Tahun' },
+            yaxis: { title: 'Frekuensi' }
+        };
+
+        Plotly.newPlot('predictionChart', seriesData, layout);
+    }
+
+    // Inisialisasi elemen untuk menampilkan grafik
+    const chartDiv = document.createElement('div');
+    chartDiv.id = 'predictionChart';
+    chartDiv.style.width = '100%';
+    chartDiv.style.height = '400px';
+    document.body.appendChild(chartDiv); // Sesuaikan lokasi penempatan grafik di halaman
 
     // Event handler untuk tombol "Tampilkan Peta"
     document.getElementById('showMap').onclick = function() {

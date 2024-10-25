@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <!-- ECharts CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         #chart {
             height: 400px;
@@ -89,6 +91,11 @@
                 <div class="tab-content" id="tabContent">
                     <!-- Konten tabel akan diisi secara dinamis oleh JavaScript -->
                 </div>
+
+
+                <br>
+                <h3>Grafik Frekuensi Kategori</h3>
+                <div id="predictionChart" style="height: 400px;"></div>
 
             </main>
         </div>
