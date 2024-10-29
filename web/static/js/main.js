@@ -47,8 +47,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             floodData = data; // Simpan data ke variabel global
-            populateYearSelect([2023, 2024]); // Populasi dropdown tahun
-            populateYearTabs([2023, 2024]); // Inisialisasi nav tabs berdasarkan tahun
+            populateYearSelect([2023, 2024]);
+            // Populasi dropdown tahun
+            populateYearTabs([2023, 2024]); 
+            // Inisialisasi nav tabs berdasarkan tahun
             displayPredictionChart(data)
         })
         .catch(error => console.error('Error fetching data:', error));
@@ -67,8 +69,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayPredictionChart(data) {
         // Menghitung frekuensi kategori per tahun
         const frequencyData = {
-            2023: { 'Aman': 0, 'Siaga': 0, 'Awas': 0 },
-            2024: { 'Aman': 0, 'Siaga': 0, 'Awas': 0 }
+            2023: { 'Aman': 0, 'Siaga': 0, 'Awas': 0, 'Waspada': 0 },
+            2024: { 'Aman': 0, 'Siaga': 0, 'Awas': 0, 'Waspada': 0 }
         };
 
         data.forEach(item => {

@@ -58,6 +58,16 @@
                                 Data Uji
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="modal" data-target="#addTrainDataModal">
+                                Tambah Data Latih
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="modal" data-target="#addTestDataModal">
+                               Tambah Data Uji
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </nav>
@@ -188,6 +198,180 @@
         </div>
     </div>
 </div>
+<!-- Modal untuk tambah data latih -->
+<div class="modal fade" id="addTrainDataModal" tabindex="-1" role="dialog" aria-labelledby="addTrainDataModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTrainDataModalLabel">Tambah Data Latih</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="trainDataForm">
+                    <!-- Dropdown untuk Wilayah -->
+                    <div class="form-group">
+                        <label>Wilayah</label>
+                        <select class="form-control" id="trainWilayah" required>
+                            <option value="Baktiya">Baktiya</option>
+                            <option value="Lhoksukon">Lhoksukon</option>
+                            <option value="Langkahan">Langkahan</option>
+                            <option value="Cot Girek">Cot Girek</option>
+                            <option value="Matangkuli">Matangkuli</option>
+                            <option value="Tanah Luas">Tanah Luas</option>
+                            <option value="Stamet Aceh Utara">Stamet Aceh Utara</option>
+                            <!-- Tambahan wilayah lainnya -->
+                            <option value="Wilayah Lain">Wilayah Lain</option>
+                        </select>
+                    </div>
+                    <!-- Dropdown untuk Bulan -->
+                    <div class="form-group">
+                        <label>Bulan</label>
+                        <select class="form-control" id="trainBulan" required>
+                            <option value="Jan">Januari</option>
+                            <option value="Feb">Februari</option>
+                            <option value="Mar">Maret</option>
+                            <option value="Apr">April</option>
+                            <option value="May">Mei</option>
+                            <option value="Jun">Juni</option>
+                            <option value="Jul">Juli</option>
+                            <option value="Aug">Agustus</option>
+                            <option value="Sep">September</option>
+                            <option value="Oct">Oktober</option>
+                            <option value="Nov">November</option>
+                            <option value="Dec">Desember</option>
+                        </select>
+                    </div>
+                    <!-- Dropdown untuk Tahun -->
+                    <div class="form-group">
+                        <label>Tahun</label>
+                        <select class="form-control" id="trainTahun" required>
+                            <!-- Tambahkan range tahun yang lebih luas -->
+                            <option value="2015">2015</option>
+                            <option value="2016">2016</option>
+                            <option value="2017">2017</option>
+                            <option value="2018">2018</option>
+                            <option value="2019">2019</option>
+                            <option value="2020">2020</option>
+                            <option value="2021">2021</option>
+                            <option value="2022">2022</option>
+                            <option value="2023">2023</option>
+                        </select>
+                    </div>
+                    <!-- Input untuk Curah Hujan -->
+                    <div class="form-group">
+                        <label>Curah Hujan</label>
+                        <input type="number" step="0.01" class="form-control" id="trainCurahHujan" required>
+                    </div>
+                    <!-- Input untuk Suhu -->
+                    <div class="form-group">
+                        <label>Suhu</label>
+                        <input type="number" step="0.01" class="form-control" id="trainSuhu" required>
+                    </div>
+                    <!-- Input untuk Tinggi Muka Air -->
+                    <div class="form-group">
+                        <label>Tinggi Muka Air</label>
+                        <input type="number" step="0.01" class="form-control" id="trainTinggiMukaAir" required>
+                    </div>
+                    <!-- Dropdown untuk Potensi Banjir -->
+                    <div class="form-group">
+                        <label>Potensi Banjir</label>
+                        <select class="form-control" id="trainPotensiBanjir" required>
+                            <option value="Aman">Aman</option>
+                            <option value="Waspada">Waspada</option>
+                            <option value="Siaga">Siaga</option>
+                            <option value="Bahaya">Bahaya</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="addTrainData()">Tambah Data Latih</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal untuk tambah data uji -->
+<div class="modal fade" id="addTestDataModal" tabindex="-1" role="dialog" aria-labelledby="addTestDataModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTestDataModalLabel">Tambah Data Uji</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="testDataForm">
+                    <!-- Dropdown untuk Wilayah -->
+                    <div class="form-group">
+                        <label>Wilayah</label>
+                        <select class="form-control" id="testWilayah" required>
+                            <option value="Baktiya">Baktiya</option>
+                            <option value="Lhoksukon">Lhoksukon</option>
+                            <option value="Langkahan">Langkahan</option>
+                            <option value="Cot Girek">Cot Girek</option>
+                            <option value="Matangkuli">Matangkuli</option>
+                            <option value="Tanah Luas">Tanah Luas</option>
+                            <option value="Stamet Aceh Utara">Stamet Aceh Utara</option>
+                            <option value="Wilayah Lain">Wilayah Lain</option>
+                        </select>
+                    </div>
+                    <!-- Dropdown untuk Bulan -->
+                    <div class="form-group">
+                        <label>Bulan</label>
+                        <select class="form-control" id="testBulan" required>
+                            <option value="Jan">Januari</option>
+                            <option value="Feb">Februari</option>
+                            <option value="Mar">Maret</option>
+                            <option value="Apr">April</option>
+                            <option value="May">Mei</option>
+                            <option value="Jun">Juni</option>
+                            <option value="Jul">Juli</option>
+                            <option value="Aug">Agustus</option>
+                            <option value="Sep">September</option>
+                            <option value="Oct">Oktober</option>
+                            <option value="Nov">November</option>
+                            <option value="Dec">Desember</option>
+                        </select>
+                    </div>
+                    <!-- Dropdown untuk Tahun -->
+                    <div class="form-group">
+                        <label>Tahun</label>
+                        <select class="form-control" id="testTahun" required>
+                            <option value="2015">2015</option>
+                            <option value="2016">2016</option>
+                            <option value="2017">2017</option>
+                            <option value="2018">2018</option>
+                            <option value="2019">2019</option>
+                            <option value="2020">2020</option>
+                            <option value="2021">2021</option>
+                            <option value="2022">2022</option>
+                            <option value="2023">2023</option>
+                        </select>
+                    </div>
+                    <!-- Input untuk Curah Hujan -->
+                    <div class="form-group">
+                        <label>Curah Hujan</label>
+                        <input type="number" step="0.01" class="form-control" id="testCurahHujan" required>
+                    </div>
+                    <!-- Input untuk Suhu -->
+                    <div class="form-group">
+                        <label>Suhu</label>
+                        <input type="number" step="0.01" class="form-control" id="testSuhu" required>
+                    </div>
+                    <!-- Input untuk Tinggi Muka Air -->
+                    <div class="form-group">
+                        <label>Tinggi Muka Air</label>
+                        <input type="number" step="0.01" class="form-control" id="testTinggiMukaAir" required>
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="addTestData()">Tambah Data Uji</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 </div>
 
@@ -223,6 +407,50 @@
     }
 }
 initMap()
+ // Fungsi untuk menambahkan data latih ke database
+ function addTrainData() {
+            const data = {
+                Wilayah: document.getElementById("trainWilayah").value,
+                Bulan: document.getElementById("trainBulan").value,
+                Tahun: parseInt(document.getElementById("trainTahun").value),
+                Curah_Hujan: parseFloat(document.getElementById("trainCurahHujan").value),
+                Suhu: parseFloat(document.getElementById("trainSuhu").value),
+                Tinggi_Muka_Air: parseFloat(document.getElementById("trainTinggiMukaAir").value),
+                Potensi_Banjir: document.getElementById("trainPotensiBanjir").value
+            };
+
+            axios.post('/add_data_train', data)
+                .then(response => {
+                    alert(response.data.message);
+                    $('#addTrainDataModal').modal('hide');
+                    document.getElementById("trainDataForm").reset();
+                })
+                .catch(error => {
+                    alert('Gagal menambahkan data latih: ' + error.response.data.message);
+                });
+        }
+
+        // Fungsi untuk menambahkan data uji ke database
+        function addTestData() {
+            const data = {
+                Wilayah: document.getElementById("testWilayah").value,
+                Bulan: document.getElementById("testBulan").value,
+                Tahun: parseInt(document.getElementById("testTahun").value),
+                Curah_Hujan: parseFloat(document.getElementById("testCurahHujan").value),
+                Suhu: parseFloat(document.getElementById("testSuhu").value),
+                Tinggi_Muka_Air: parseFloat(document.getElementById("testTinggiMukaAir").value)
+            };
+
+            axios.post('/add_data_test', data)
+                .then(response => {
+                    alert(response.data.message);
+                    $('#addTestDataModal').modal('hide');
+                    document.getElementById("testDataForm").reset();
+                })
+                .catch(error => {
+                    alert('Gagal menambahkan data uji: ' + error.response.data.message);
+                });
+        }
 </script>
 
 

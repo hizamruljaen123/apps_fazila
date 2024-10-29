@@ -290,6 +290,89 @@ def get_data_test():
     else:
         return jsonify({'message': 'No testing data found'}), 404
 
+# Endpoint untuk menambahkan data latih ke database
+@app.route('/add_data_train', methods=['POST'])
+def add_data_train():
+    # Mengambil data JSON dari request
+    data = request.get_json()
+
+    # Mengecek apakah data yang dibutuhkan ada di request
+    required_fields = ['Wilayah', 'Bulan', 'Tahun', 'Curah_Hujan', 'Suhu', 'Tinggi_Muka_Air', 'Potensi_Banjir']
+    if not all(field in data for field in required_fields):
+        return jsonify({'message': 'Data tidak lengkap!'}), 400
+
+    # Menghubungkan ke database
+    db = connect_db()
+    cursor = db.cursor()
+
+    # Query untuk memasukkan data ke tabel `data_banjir`
+    query = """
+        INSERT INTO data_banjir (Wilayah, Bulan, Tahun, Curah_Hujan, Suhu, Tinggi_Muka_Air, Potensi_Banjir)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """
+    values = (
+        data['Wilayah'], 
+        data['Bulan'], 
+        data['Tahun'], 
+        data['Curah_Hujan'], 
+        data['Suhu'], 
+        data['Tinggi_Muka_Air'], 
+        data['Potensi_Banjir']
+    )
+
+    try:
+        # Menjalankan query untuk menambahkan data ke database
+        cursor.execute(query, values)
+        db.commit()  # Commit perubahan ke database
+        return jsonify({'message': 'Data berhasil ditambahkan ke database!'}), 201
+    except mysql.connector.Error as err:
+        # Menangani error jika terjadi masalah saat memasukkan data
+        return jsonify({'message': f'Gagal menambahkan data: {err}'}), 500
+    finally:
+        # Menutup koneksi ke database
+        cursor.close()
+        db.close()
+# Endpoint untuk menambahkan data uji ke database
+@app.route('/add_data_test', methods=['POST'])
+def add_data_test():
+    # Mengambil data JSON dari request
+    data = request.get_json()
+
+    # Mengecek apakah data yang dibutuhkan ada di request
+    required_fields = ['Wilayah', 'Bulan', 'Tahun', 'Curah_Hujan', 'Suhu', 'Tinggi_Muka_Air']
+    if not all(field in data for field in required_fields):
+        return jsonify({'message': 'Data tidak lengkap!'}), 400
+
+    # Menghubungkan ke database
+    db = connect_db()
+    cursor = db.cursor()
+
+    # Query untuk memasukkan data ke tabel `data_uji`
+    query = """
+        INSERT INTO data_uji (Wilayah, Bulan, Tahun, Curah_Hujan, Suhu, Tinggi_Muka_Air)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """
+    values = (
+        data['Wilayah'], 
+        data['Bulan'], 
+        data['Tahun'], 
+        data['Curah_Hujan'], 
+        data['Suhu'], 
+        data['Tinggi_Muka_Air']
+    )
+
+    try:
+        # Menjalankan query untuk menambahkan data ke database
+        cursor.execute(query, values)
+        db.commit()  # Commit perubahan ke database
+        return jsonify({'message': 'Data uji berhasil ditambahkan ke database!'}), 201
+    except mysql.connector.Error as err:
+        # Menangani error jika terjadi masalah saat memasukkan data
+        return jsonify({'message': f'Gagal menambahkan data uji: {err}'}), 500
+    finally:
+        # Menutup koneksi ke database
+        cursor.close()
+        db.close()
 
 # Index route to display HTML page
 @app.route('/')
