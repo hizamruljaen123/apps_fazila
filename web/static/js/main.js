@@ -250,6 +250,9 @@ function loadDataLatih() {
                         <td>${item.Suhu}</td>
                         <td>${item.Tinggi_Muka_Air}</td>
                         <td>${item.Potensi_Banjir}</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" onclick="deleteDataTrain(${item.id})">Hapus</button>
+                        </td>
                     </tr>
                 `;
                 tbody.insertAdjacentHTML('beforeend', row);
@@ -286,12 +289,48 @@ function loadDataUji() {
                         <td>${item.Curah_Hujan}</td>
                         <td>${item.Suhu}</td>
                         <td>${item.Tinggi_Muka_Air}</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" onclick="deleteDataTest(${item.id})">Hapus</button>
+                        </td>
                     </tr>
                 `;
                 tbody.insertAdjacentHTML('beforeend', row);
             });
         })
         .catch(error => console.error('Error fetching data uji:', error));
+}
+
+
+// Fungsi untuk menghapus data dari tabel data_banjir (data latih) menggunakan metode GET
+async function deleteDataTrain(id) {
+    const response = await fetch(`/delete_data_train?id=${id}`, {
+        method: 'GET',
+    });
+
+    const result = await response.json();
+    if (response.ok) {
+        console.log(`Data dengan ID ${id} berhasil dihapus:`, result.message);
+        // Reload halaman setelah berhasil menghapus data
+        window.location.reload();
+    } else {
+        console.error(`Gagal menghapus data:`, result.message);
+    }
+}
+
+// Fungsi untuk menghapus data dari tabel data_uji (data uji) menggunakan metode GET
+async function deleteDataTest(id) {
+    const response = await fetch(`/delete_data_test?id=${id}`, {
+        method: 'GET',
+    });
+
+    const result = await response.json();
+    if (response.ok) {
+        console.log(`Data dengan ID ${id} berhasil dihapus:`, result.message);
+        // Reload halaman setelah berhasil menghapus data
+        window.location.reload();
+    } else {
+        console.error(`Gagal menghapus data:`, result.message);
+    }
 }
 
 document.getElementById('refreshPage').onclick = function() {

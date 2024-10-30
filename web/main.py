@@ -374,9 +374,65 @@ def add_data_test():
         cursor.close()
         db.close()
 
-# Index route to display HTML page
-@app.route('/')
+# Endpoint untuk menghapus data dari tabel data_banjir (data latih)
+@app.route('/delete_data_train', methods=['GET'])
+def delete_data_train():
+    data_id = request.args.get('id')  # Mengambil ID dari parameter query
+    
+    if not data_id:
+        return jsonify({'message': 'ID data yang akan dihapus tidak ditemukan!'}), 400
+    
+    # Menghubungkan ke database
+    db = connect_db()
+    cursor = db.cursor()
+
+    try:
+        # Query untuk menghapus data dari tabel data_banjir
+        query = "DELETE FROM data_banjir WHERE id = %s"
+        cursor.execute(query, (data_id,))
+        db.commit()
+        
+        if cursor.rowcount > 0:
+            return jsonify({'message': f'Data dengan ID {data_id} berhasil dihapus.'}), 200
+        else:
+            return jsonify({'message': 'Data tidak ditemukan!'}), 404
+    except mysql.connector.Error as err:
+        return jsonify({'message': f'Gagal menghapus data: {err}'}), 500
+    finally:
+        cursor.close()
+        db.close()
+
+# Endpoint untuk menghapus data dari tabel data_uji (data uji)
+@app.route('/delete_data_test', methods=['GET'])
+def delete_data_test():
+    data_id = request.args.get('id')  # Mengambil ID dari parameter query
+    
+    if not data_id:
+        return jsonify({'message': 'ID data yang akan dihapus tidak ditemukan!'}), 400
+    
+    db = connect_db()
+    cursor = db.cursor()
+
+    try:
+        # Query untuk menghapus data dari tabel data_uji
+        query = "DELETE FROM data_uji WHERE id = %s"
+        cursor.execute(query, (data_id,))
+        db.commit()
+        
+        if cursor.rowcount > 0:
+            return jsonify({'message': f'Data dengan ID {data_id} berhasil dihapus.'}), 200
+        else:
+            return jsonify({'message': 'Data tidak ditemukan!'}), 404
+    except mysql.connector.Error as err:
+        return jsonify({'message': f'Gagal menghapus data: {err}'}), 500
+    finally:
+        cursor.close()
+        db.close()
+
+
+
 def index():
+    
     return render_template('index.html')
 
 if __name__ == '__main__':
