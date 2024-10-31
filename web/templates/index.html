@@ -411,48 +411,62 @@
 initMap()
  // Fungsi untuk menambahkan data latih ke database
  function addTrainData() {
-            const data = {
-                Wilayah: document.getElementById("trainWilayah").value,
-                Bulan: document.getElementById("trainBulan").value,
-                Tahun: parseInt(document.getElementById("trainTahun").value),
-                Curah_Hujan: parseFloat(document.getElementById("trainCurahHujan").value),
-                Suhu: parseFloat(document.getElementById("trainSuhu").value),
-                Tinggi_Muka_Air: parseFloat(document.getElementById("trainTinggiMukaAir").value),
-                Potensi_Banjir: document.getElementById("trainPotensiBanjir").value
-            };
+    const data = {
+        Wilayah: document.getElementById("trainWilayah").value,
+        Bulan: document.getElementById("trainBulan").value,
+        Tahun: parseInt(document.getElementById("trainTahun").value),
+        Curah_Hujan: parseFloat(document.getElementById("trainCurahHujan").value),
+        Suhu: parseFloat(document.getElementById("trainSuhu").value),
+        Tinggi_Muka_Air: parseFloat(document.getElementById("trainTinggiMukaAir").value),
+        Potensi_Banjir: document.getElementById("trainPotensiBanjir").value
+    };
 
-            axios.post('/add_data_train', data)
-                .then(response => {
-                    alert(response.data.message);
-                    $('#addTrainDataModal').modal('hide');
-                    document.getElementById("trainDataForm").reset();
-                })
-                .catch(error => {
-                    alert('Gagal menambahkan data latih: ' + error.response.data.message);
-                });
-        }
+    fetch('/add_data_train', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(response => {
+        alert(response.message);
+        $('#addTrainDataModal').modal('hide');
+        document.getElementById("trainDataForm").reset();
+    })
+    .catch(error => {
+        alert('Gagal menambahkan data latih: ' + error.message);
+    });
+}
 
-        // Fungsi untuk menambahkan data uji ke database
-        function addTestData() {
-            const data = {
-                Wilayah: document.getElementById("testWilayah").value,
-                Bulan: document.getElementById("testBulan").value,
-                Tahun: parseInt(document.getElementById("testTahun").value),
-                Curah_Hujan: parseFloat(document.getElementById("testCurahHujan").value),
-                Suhu: parseFloat(document.getElementById("testSuhu").value),
-                Tinggi_Muka_Air: parseFloat(document.getElementById("testTinggiMukaAir").value)
-            };
+function addTestData() {
+    const data = {
+        Wilayah: document.getElementById("testWilayah").value,
+        Bulan: document.getElementById("testBulan").value,
+        Tahun: parseInt(document.getElementById("testTahun").value),
+        Curah_Hujan: parseFloat(document.getElementById("testCurahHujan").value),
+        Suhu: parseFloat(document.getElementById("testSuhu").value),
+        Tinggi_Muka_Air: parseFloat(document.getElementById("testTinggiMukaAir").value)
+    };
 
-            axios.post('/add_data_test', data)
-                .then(response => {
-                    alert(response.data.message);
-                    $('#addTestDataModal').modal('hide');
-                    document.getElementById("testDataForm").reset();
-                })
-                .catch(error => {
-                    alert('Gagal menambahkan data uji: ' + error.response.data.message);
-                });
-        }
+    fetch('/add_data_test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(response => {
+        alert(response.message);
+        $('#addTestDataModal').modal('hide');
+        document.getElementById("testDataForm").reset();
+    })
+    .catch(error => {
+        alert('Gagal menambahkan data uji: ' + error.message);
+    });
+}
+
 </script>
 
 
