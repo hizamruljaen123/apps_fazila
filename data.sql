@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `data_banjir` (
   `Suhu` float DEFAULT NULL,
   `Tinggi_Muka_Air` float DEFAULT NULL,
   `Potensi_Banjir` varchar(50) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- Dumping data for table data_banjir.data_banjir: ~420 rows (approximately)
 INSERT INTO `data_banjir` (`Wilayah`, `Bulan`, `Tahun`, `Curah_Hujan`, `Suhu`, `Tinggi_Muka_Air`, `Potensi_Banjir`) VALUES
@@ -450,13 +450,13 @@ INSERT INTO `data_banjir` (`Wilayah`, `Bulan`, `Tahun`, `Curah_Hujan`, `Suhu`, `
 
 -- Dumping structure for table data_banjir.data_uji
 CREATE TABLE IF NOT EXISTS `data_uji` (
-  `Wilayah` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
-  `Bulan` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `Wilayah` varchar(255)  NULL,
+  `Bulan` varchar(50)  NULL,
   `Tahun` int DEFAULT NULL,
   `Curah_Hujan` float DEFAULT NULL,
   `Suhu` float DEFAULT NULL,
   `Tinggi_Muka_Air` float DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- Dumping data for table data_banjir.data_uji: ~17 rows (approximately)
 INSERT INTO `data_uji` (`Wilayah`, `Bulan`, `Tahun`, `Curah_Hujan`, `Suhu`, `Tinggi_Muka_Air`) VALUES

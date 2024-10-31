@@ -268,7 +268,7 @@ function loadDataUji() {
         .then(data => {
             const tbody = document.querySelector('#dataUjiTable tbody');
             tbody.innerHTML = ''; // Clear previous rows
-
+            console.log(data)
             // Sort data based on shortMonthOrder and Tahun
             data.sort((a, b) => {
                 const monthDiff = shortMonthOrder.indexOf(a.Bulan) - shortMonthOrder.indexOf(b.Bulan);
@@ -311,7 +311,7 @@ async function deleteDataTrain(id) {
     if (response.ok) {
         console.log(`Data dengan ID ${id} berhasil dihapus:`, result.message);
         // Reload halaman setelah berhasil menghapus data
-        window.location.reload();
+        loadDataLatih()
     } else {
         console.error(`Gagal menghapus data:`, result.message);
     }
@@ -327,7 +327,7 @@ async function deleteDataTest(id) {
     if (response.ok) {
         console.log(`Data dengan ID ${id} berhasil dihapus:`, result.message);
         // Reload halaman setelah berhasil menghapus data
-        window.location.reload();
+        loadDataUji()
     } else {
         console.error(`Gagal menghapus data:`, result.message);
     }
