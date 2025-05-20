@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'Cot Girek': [4.8616275, 97.2673567],
             'Matangkuli': [5.0306322, 97.2316173],
             'Tanah Luas': [4.9826373, 97.0425453],
-            'Stamet Aceh Utara': [5.228798, 96.9449662]
+            'Stasiun Meteorologi Aceh Utara': [5.228798, 96.9449662]
         };
 
         // Tampilkan marker default pada peta

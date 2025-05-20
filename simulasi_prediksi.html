@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Prediksi Banjir - Neural Network & Levenberg-Marquardt</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .process-step {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 5px solid #007bff;
+        }
+        .result-table {
+            margin-top: 20px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #map {
+            height: 400px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .calculation-table {
+            font-family: monospace;
+            font-size: 14px;
+            background-color: #f8f9fa;
+        }
+        .model-visualization {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+        .status-aman {
+            background-color: #28a745;
+            color: white;
+        }
+        .status-waspada {
+            background-color: #ffc107;
+            color: black;
+        }
+        .status-siaga {
+            background-color: #fd7e14;
+            color: white;
+        }
+        .status-awas {
+            background-color: #dc3545;
+            color: white;
+        }
+        .step-number {
+            background-color: #007bff;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+        }
+        .chart-container {
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .btn-simulasi {
+            padding: 10px 30px;
+            font-size: 1.2em;
+            border-radius: 30px;
+            margin: 20px 0;
+        }
+        .process-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .process-title h3 {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Simulasi Prediksi Banjir</h1>
+        <h2 class="text-center mb-4 text-primary">Menggunakan Neural Network dan Levenberg-Marquardt</h2>
+
+        <!-- Input Data -->
+        <div class="process-step">
+            <div class="process-title">
+                <div class="step-number">1</div>
+                <h3>Input Data</h3>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h4 class="mb-3">Data Input</h4>
+                    <div class="table-responsive">
+                        <table class="table table-bordered result-table">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Nilai</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Curah Hujan (mm)</td>
+                                    <td id="rainfall">0</td>
+                                </tr>
+                                <tr>
+                                    <td>Suhu (°C)</td>
+                                    <td id="temperature">0</td>
+                                </tr>
+                                <tr>
+                                    <td>Tinggi Muka Air (m)</td>
+                                    <td id="water-level">0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="inputChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Training -->
+        <div class="process-step">
+            <div class="process-title">
+                <div class="step-number">2</div>
+                <h3>Data Training</h3>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 class="mb-3">Contoh Data Training</h4>
+                    <div class="table-responsive">
+                        <table class="table table-bordered result-table">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Wilayah</th>
+                                    <th>Bulan</th>
+                                    <th>Tahun</th>
+                                    <th>Curah Hujan</th>
+                                    <th>Suhu</th>
+                                    <th>Tinggi Muka Air</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="training-data">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualisasi Model -->
+        <div class="process-step">
+            <div class="process-title">
+                <div class="step-number">3</div>
+                <h3>Visualisasi Model Neural Network</h3>
+            </div>
+            <div class="model-visualization">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4 class="mb-3">Struktur Jaringan</h4>
+                        <pre id="model-structure" class="p-3 bg-white rounded">
+Input Layer (3) -> Hidden Layer (10) -> Output Layer (1)
+                        </pre>
+                    </div>
+                    <div class="col-md-6">
+                        <h4 class="mb-3">Parameter Jaringan</h4>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <td class="table-primary">Input Size</td>
+                                    <td id="input-size">3</td>
+                                </tr>
+                                <tr>
+                                    <td class="table-primary">Hidden Size</td>
+                                    <td id="hidden-size">10</td>
+                                </tr>
+                                <tr>
+                                    <td class="table-primary">Output Size</td>
+                                    <td id="output-size">1</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Proses Neural Network -->
+        <div class="process-step">
+            <div class="process-title">
+                <div class="step-number">4</div>
+                <h3>Proses Neural Network</h3>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h4 class="mb-3">Perhitungan Manual</h4>
+                    <div class="table-responsive">
+                        <table class="table table-bordered calculation-table">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Langkah</th>
+                                    <th>Rumus</th>
+                                    <th>Hasil</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nn-calculations">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="nnChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Proses Levenberg-Marquardt -->
+        <div class="process-step">
+            <div class="process-title">
+                <div class="step-number">5</div>
+                <h3>Optimasi Levenberg-Marquardt</h3>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h4 class="mb-3">Perhitungan Manual</h4>
+                    <div class="table-responsive">
+                        <table class="table table-bordered calculation-table">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Langkah</th>
+                                    <th>Rumus</th>
+                                    <th>Hasil</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lm-calculations">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="lmChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Uji -->
+        <div class="process-step">
+            <div class="process-title">
+                <div class="step-number">6</div>
+                <h3>Data Uji</h3>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 class="mb-3">Data Uji dan Hasil Prediksi</h4>
+                    <div class="table-responsive">
+                        <table class="table table-bordered result-table">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Wilayah</th>
+                                    <th>Bulan</th>
+                                    <th>Tahun</th>
+                                    <th>Curah Hujan</th>
+                                    <th>Suhu</th>
+                                    <th>Tinggi Muka Air</th>
+                                    <th>Prediksi</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="test-results">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hasil Akhir -->
+        <div class="process-step">
+            <div class="process-title">
+                <div class="step-number">7</div>
+                <h3>Hasil Prediksi dan Pemetaan</h3>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h4 class="mb-3">Ringkasan Hasil</h4>
+                    <div class="table-responsive">
+                        <table class="table table-bordered result-table">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Wilayah</th>
+                                    <th>Prediksi</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="final-results">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div id="map"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tombol Simulasi -->
+        <div class="text-center">
+            <button class="btn btn-primary btn-simulasi" onclick="startSimulation()">
+                <i class="fas fa-play"></i> Mulai Simulasi
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Koordinat wilayah
+        const coordinates = {
+            'Baktiya': [5.0621243, 97.3258354],
+            'Lhoksukon': [5.0517222, 97.3078233],
+            'Langkahan': [4.9211586, 97.1261701],
+            'Cot Girek': [4.8616275, 97.2673567],
+            'Matangkuli': [5.0306322, 97.2316173],
+            'Tanah Luas': [4.9826373, 97.0425453],
+            'Stamet Aceh Utara': [5.228798, 96.9449662]
+        };
+
+        // Mapping status
+        const statusMapping = {
+            0: 'Aman',
+            1: 'Waspada',
+            2: 'Siaga',
+            3: 'Awas'
+        };
+
+        // Inisialisasi chart
+        const inputCtx = document.getElementById('inputChart').getContext('2d');
+        const nnCtx = document.getElementById('nnChart').getContext('2d');
+        const lmCtx = document.getElementById('lmChart').getContext('2d');
+
+        // Inisialisasi peta
+        const map = L.map('map').setView([5.0621243, 97.3258354], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        async function startSimulation() {
+            try {
+                // Ambil data training
+                const trainingResponse = await fetch('/data_train');
+                const trainingData = await trainingResponse.json();
+                
+                // Ambil data uji
+                const testResponse = await fetch('/data_test');
+                const testData = await testResponse.json();
+                
+                // Tampilkan data training
+                displayTrainingData(trainingData);
+                
+                // Tampilkan data uji
+                displayTestData(testData);
+                
+                // Lakukan prediksi untuk data uji
+                const predictions = await predictTestData(testData);
+                
+                // Tampilkan hasil prediksi
+                displayPredictions(predictions);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat memuat data');
+            }
+        }
+
+        function displayTrainingData(data) {
+            const trainingData = document.getElementById('training-data');
+            trainingData.innerHTML = '';
+            
+            // Ambil 5 data pertama sebagai contoh
+            data.slice(0, 5).forEach(item => {
+                trainingData.innerHTML += `
+                    <tr>
+                        <td>${item.Wilayah}</td>
+                        <td>${item.Bulan}</td>
+                        <td>${item.Tahun}</td>
+                        <td>${item.Curah_Hujan}</td>
+                        <td>${item.Suhu}</td>
+                        <td>${item.Tinggi_Muka_Air}</td>
+                        <td><span class="status-badge status-${item.Potensi_Banjir.toLowerCase()}">${item.Potensi_Banjir}</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function predictTestData(testData) {
+            const predictions = [];
+            
+            for (const item of testData) {
+                try {
+                    const response = await fetch('/api/simulasi/predict', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            curah_hujan: item.Curah_Hujan,
+                            suhu: item.Suhu,
+                            tinggi_muka_air: item.Tinggi_Muka_Air
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    predictions.push({
+                        ...item,
+                        prediction: result.prediction,
+                        status: result.status
+                    });
+                } catch (error) {
+                    console.error('Error predicting:', error);
+                }
+            }
+            
+            return predictions;
+        }
+
+        function displayTestData(data) {
+            const testResults = document.getElementById('test-results');
+            testResults.innerHTML = '';
+            
+            data.forEach(item => {
+                testResults.innerHTML += `
+                    <tr>
+                        <td>${item.Wilayah}</td>
+                        <td>${item.Bulan}</td>
+                        <td>${item.Tahun}</td>
+                        <td>${item.Curah_Hujan}</td>
+                        <td>${item.Suhu}</td>
+                        <td>${item.Tinggi_Muka_Air}</td>
+                        <td>-</td>
+                        <td>-</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function displayPredictions(predictions) {
+            const testResults = document.getElementById('test-results');
+            const finalResults = document.getElementById('final-results');
+            
+            testResults.innerHTML = '';
+            finalResults.innerHTML = '';
+            
+            predictions.forEach(item => {
+                // Update tabel data uji
+                testResults.innerHTML += `
+                    <tr>
+                        <td>${item.Wilayah}</td>
+                        <td>${item.Bulan}</td>
+                        <td>${item.Tahun}</td>
+                        <td>${item.Curah_Hujan}</td>
+                        <td>${item.Suhu}</td>
+                        <td>${item.Tinggi_Muka_Air}</td>
+                        <td>${item.prediction}</td>
+                        <td><span class="status-badge status-${item.status.toLowerCase()}">${item.status}</span></td>
+                    </tr>
+                `;
+                
+                // Update tabel hasil akhir
+                finalResults.innerHTML += `
+                    <tr>
+                        <td>${item.Wilayah}</td>
+                        <td>${item.prediction}</td>
+                        <td><span class="status-badge status-${item.status.toLowerCase()}">${item.status}</span></td>
+                    </tr>
+                `;
+                
+                // Update peta
+                const color = getStatusColor(item.prediction);
+                L.circleMarker(coordinates[item.Wilayah], {
+                    radius: 8,
+                    fillColor: color,
+                    color: '#000',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map)
+                .bindPopup(`${item.Wilayah}<br>Status: ${item.status}`);
+            });
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 0: return '#28a745'; // Aman - Hijau
+                case 1: return '#ffc107'; // Waspada - Kuning
+                case 2: return '#fd7e14'; // Siaga - Oranye
+                case 3: return '#dc3545'; // Awas - Merah
+                default: return '#808080'; // Default - Abu-abu
+            }
+        }
+    </script>
+</body>
+</html> 

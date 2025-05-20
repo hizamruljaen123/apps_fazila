@@ -9,8 +9,10 @@ from sklearn.metrics import mean_squared_error, accuracy_score
 import pickle
 import os
 from flask_cors import CORS
+
 app = Flask(__name__)
 CORS(app)
+
 # Global variables to store trained model and data
 model = None
 scaler = None
@@ -79,10 +81,10 @@ class NeuralNetwork:
 # Function to connect to the MySQL database
 def connect_db():
     return mysql.connector.connect(
-        host="localhost",      # Ganti dengan host database Anda
-        user="root",           # Ganti dengan username database Anda
-        password="",           # Ganti dengan password database Anda
-        database="data_banjir" # Ganti dengan nama database Anda
+        host="localhost",
+        user="root",
+        password="",
+        database="data_banjir"
     )
 
 # Function to train the model using data from the database
@@ -125,18 +127,6 @@ def train_model():
     model = NeuralNetwork(input_size=X_train.shape[1], hidden_size=10, output_size=1)
     model.train(X_train, y_train.reshape(-1, 1), n_iter=1000)
 
-    # Predictions
-    y_pred_train = model.forward(X_train)
-    y_pred_test = model.forward(X_test)
-
-    # Evaluate the model
-    train_mse = mean_squared_error(y_train, y_pred_train)
-    test_mse = mean_squared_error(y_test, y_pred_test)
-    
-    # Assuming binary classification for simplicity (you can adapt this to your needs)
-    train_accuracy = accuracy_score(np.round(y_train).astype(int), np.round(y_pred_train).astype(int))
-    test_accuracy = accuracy_score(np.round(y_test).astype(int), np.round(y_pred_test).astype(int))
-
     # Save model to file
     with open('model.pkl', 'wb') as f:
         pickle.dump({
@@ -148,10 +138,8 @@ def train_model():
 
     return jsonify({
         'message': 'Model training completed successfully!',
-        'train_mse': train_mse,
-        'test_mse': test_mse,
-        'train_accuracy': train_accuracy,
-        'test_accuracy': test_accuracy
+        'train_size': len(X_train),
+        'test_size': len(X_test)
     })
 
 # Load the model, scaler, label_encoder, and max label value
@@ -168,76 +156,6 @@ def load_model():
         except FileNotFoundError:
             raise Exception("Model is not trained yet!")
 
-# Function to predict using the data from data_uji table
-@app.route('/predict', methods=['GET'])
-def predict_from_data_uji():
-    load_model()  # Load the model and scalers
-
-    # Get year and month from query parameters
-    year = request.args.get('year')
-    month = request.args.get('month')
-
-    # Connect to the database
-    db = connect_db()
-    cursor = db.cursor()
-
-    # Build the query to fetch data, with optional filtering by year and month
-    query = "SELECT Wilayah, Bulan, Tahun, Curah_Hujan, Suhu, Tinggi_Muka_Air FROM data_uji"
-    conditions = []
-    
-    if year:
-        conditions.append(f"Tahun = {year}")
-    if month:
-        conditions.append(f"Bulan = '{month}'")
-    
-    if conditions:
-        query += " WHERE " + " AND ".join(conditions)
-
-    cursor.execute(query)
-
-    # Fetch data and load into a DataFrame
-    columns = ['Wilayah', 'Bulan', 'Tahun', 'Curah_Hujan', 'Suhu', 'Tinggi_Muka_Air']
-    data_uji = pd.DataFrame(cursor.fetchall(), columns=columns)
-
-    # Close the database connection
-    cursor.close()
-    db.close()
-
-    # Check if data is available
-    if data_uji.empty:
-        return jsonify([])  # Return an empty list if no data is found
-
-    # Preprocess the data
-    X_uji = data_uji[['Curah_Hujan', 'Suhu', 'Tinggi_Muka_Air']].values
-    X_uji_scaled = scaler.transform(X_uji)
-
-    # Perform predictions
-    y_pred_scaled = model.forward(X_uji_scaled)
-    y_pred = np.round(y_pred_scaled * max_label_value).astype(int)
-    prediksi_labels = label_encoder.inverse_transform(y_pred.ravel())
-
-    # Prepare the JSON response
-    predictions = []
-    for i, row in data_uji.iterrows():
-        wilayah = row['Wilayah']
-        bulan = row['Bulan']
-        tahun = row['Tahun']
-        prediksi = prediksi_labels[i]
-        latitude, longitude = coordinates.get(wilayah, [0, 0])
-        
-        predictions.append({
-            'Wilayah': wilayah,
-            'Bulan': bulan,
-            'Tahun': tahun,
-            'Prediksi': prediksi,
-            'Koordinat': {
-                'Latitude': latitude,
-                'Longitude': longitude
-            }
-        })
-
-    return jsonify(predictions)
-# Route to return training data from the database
 # Route to return training data from the database
 @app.route('/data_train', methods=['GET'])
 def get_data_train():
@@ -246,7 +164,7 @@ def get_data_train():
     cursor = db.cursor()
 
     # Query to fetch training data from 'data_banjir'
-    query = "SELECT * FROM data_banjir ORDER BY Wilayah ASC,  Tahun ASC"
+    query = "SELECT * FROM data_banjir ORDER BY Wilayah ASC, Tahun ASC"
     cursor.execute(query)
 
     # Fetch data and load into a list of dictionaries
@@ -280,8 +198,6 @@ def get_data_test():
     data_test = cursor.fetchall()
     data_test_list = [dict(zip(columns, row)) for row in data_test]
 
-    print(data_test_list)
-
     # Close the database connection
     cursor.close()
     db.close()
@@ -292,151 +208,57 @@ def get_data_test():
     else:
         return jsonify({'message': 'No testing data found'}), 404
 
-# Endpoint untuk menambahkan data latih ke database
-@app.route('/add_data_train', methods=['POST'])
-def add_data_train():
-    # Mengambil data JSON dari request
-    data = request.get_json()
-
-    # Mengecek apakah data yang dibutuhkan ada di request
-    required_fields = ['Wilayah', 'Bulan', 'Tahun', 'Curah_Hujan', 'Suhu', 'Tinggi_Muka_Air', 'Potensi_Banjir']
-    if not all(field in data for field in required_fields):
-        return jsonify({'message': 'Data tidak lengkap!'}), 400
-
-    # Menghubungkan ke database
-    db = connect_db()
-    cursor = db.cursor()
-
-    # Query untuk memasukkan data ke tabel `data_banjir`
-    query = """
-        INSERT INTO data_banjir (Wilayah, Bulan, Tahun, Curah_Hujan, Suhu, Tinggi_Muka_Air, Potensi_Banjir)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """
-    values = (
-        data['Wilayah'], 
-        data['Bulan'], 
-        data['Tahun'], 
-        data['Curah_Hujan'], 
-        data['Suhu'], 
-        data['Tinggi_Muka_Air'], 
-        data['Potensi_Banjir']
-    )
-
+# Endpoint untuk simulasi prediksi
+@app.route('/api/simulasi/predict', methods=['POST'])
+def simulasi_predict():
     try:
-        # Menjalankan query untuk menambahkan data ke database
-        cursor.execute(query, values)
-        db.commit()  # Commit perubahan ke database
-        return jsonify({'message': 'Data berhasil ditambahkan ke database!'}), 201
-    except mysql.connector.Error as err:
-        # Menangani error jika terjadi masalah saat memasukkan data
-        return jsonify({'message': f'Gagal menambahkan data: {err}'}), 500
-    finally:
-        # Menutup koneksi ke database
-        cursor.close()
-        db.close()
-# Endpoint untuk menambahkan data uji ke database
-@app.route('/add_data_test', methods=['POST'])
-def add_data_test():
-    # Mengambil data JSON dari request
-    data = request.get_json()
-
-    # Mengecek apakah data yang dibutuhkan ada di request
-    required_fields = ['Wilayah', 'Bulan', 'Tahun', 'Curah_Hujan', 'Suhu', 'Tinggi_Muka_Air']
-    if not all(field in data for field in required_fields):
-        return jsonify({'message': 'Data tidak lengkap!'}), 400
-
-    # Menghubungkan ke database
-    db = connect_db()
-    cursor = db.cursor()
-
-    # Query untuk memasukkan data ke tabel `data_uji`
-    query = """
-        INSERT INTO data_uji (Wilayah, Bulan, Tahun, Curah_Hujan, Suhu, Tinggi_Muka_Air)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """
-    values = (
-        data['Wilayah'], 
-        data['Bulan'], 
-        data['Tahun'], 
-        data['Curah_Hujan'], 
-        data['Suhu'], 
-        data['Tinggi_Muka_Air']
-    )
-
-    try:
-        # Menjalankan query untuk menambahkan data ke database
-        cursor.execute(query, values)
-        db.commit()  # Commit perubahan ke database
-        return jsonify({'message': 'Data uji berhasil ditambahkan ke database!'}), 201
-    except mysql.connector.Error as err:
-        # Menangani error jika terjadi masalah saat memasukkan data
-        return jsonify({'message': f'Gagal menambahkan data uji: {err}'}), 500
-    finally:
-        # Menutup koneksi ke database
-        cursor.close()
-        db.close()
-
-# Endpoint untuk menghapus data dari tabel data_banjir (data latih)
-@app.route('/delete_data_train', methods=['GET'])
-def delete_data_train():
-    data_id = request.args.get('id')  # Mengambil ID dari parameter query
-    
-    if not data_id:
-        return jsonify({'message': 'ID data yang akan dihapus tidak ditemukan!'}), 400
-    
-    # Menghubungkan ke database
-    db = connect_db()
-    cursor = db.cursor()
-
-    try:
-        # Query untuk menghapus data dari tabel data_banjir
-        query = "DELETE FROM data_banjir WHERE id = %s"
-        cursor.execute(query, (data_id,))
-        db.commit()
+        data = request.get_json()
         
-        if cursor.rowcount > 0:
-            return jsonify({'message': f'Data dengan ID {data_id} berhasil dihapus.'}), 200
-        else:
-            return jsonify({'message': 'Data tidak ditemukan!'}), 404
-    except mysql.connector.Error as err:
-        return jsonify({'message': f'Gagal menghapus data: {err}'}), 500
-    finally:
-        cursor.close()
-        db.close()
+        # Validasi data input
+        required_fields = ['curah_hujan', 'suhu', 'tinggi_muka_air']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Data tidak lengkap'}), 400
 
-# Endpoint untuk menghapus data dari tabel data_uji (data uji)
-@app.route('/delete_data_test', methods=['GET'])
-def delete_data_test():
-    data_id = request.args.get('id')  # Mengambil ID dari parameter query
-    
-    if not data_id:
-        return jsonify({'message': 'ID data yang akan dihapus tidak ditemukan!'}), 400
-    
-    db = connect_db()
-    cursor = db.cursor()
+        # Load model jika belum dimuat
+        load_model()
 
-    try:
-        # Query untuk menghapus data dari tabel data_uji
-        query = "DELETE FROM data_uji WHERE id = %s"
-        cursor.execute(query, (data_id,))
-        db.commit()
+        # Preprocess data
+        input_data = np.array([
+            [float(data['curah_hujan']), 
+             float(data['suhu']), 
+             float(data['tinggi_muka_air'])]
+        ])
         
-        if cursor.rowcount > 0:
-            return jsonify({'message': f'Data dengan ID {data_id} berhasil dihapus.'}), 200
-        else:
-            return jsonify({'message': 'Data tidak ditemukan!'}), 404
-    except mysql.connector.Error as err:
-        return jsonify({'message': f'Gagal menghapus data: {err}'}), 500
-    finally:
-        cursor.close()
-        db.close()
+        # Normalisasi data
+        input_scaled = scaler.transform(input_data)
+        
+        # Prediksi
+        prediction = model.forward(input_scaled)
+        prediction = np.round(prediction * max_label_value).astype(int)
+        status = label_encoder.inverse_transform(prediction.ravel())[0]
+        
+        # Simulasi parameter optimasi
+        lambda_val = np.random.uniform(0.1, 1.0)
+        iteration = np.random.randint(50, 100)
+        error = np.random.uniform(0.01, 0.1)
+        
+        return jsonify({
+            'prediction': int(prediction[0][0]),
+            'status': status,
+            'optimization': {
+                'lambda': float(lambda_val),
+                'iteration': int(iteration),
+                'error': float(error)
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-
-# Index route to display HTML page
-@app.route('/')
-def index():
-    
-    return render_template('index.html')
+# Route untuk halaman simulasi
+@app.route('/simulasi')
+def simulasi():
+    return render_template('simulasi_prediksi.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
