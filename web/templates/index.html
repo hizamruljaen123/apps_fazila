@@ -13,6 +13,152 @@
     
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
+        body {
+            background: #f4f6fb;
+            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+        }
+        .sidebar {
+            background: #232946;
+            min-height: 100vh;
+            color: #fff;
+            box-shadow: 2px 0 8px rgba(44,62,80,0.07);
+        }
+        .sidebar h5 {
+            color: #eebbc3;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .sidebar .nav-link {
+            color: #b8c1ec;
+            font-size: 1.05rem;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .sidebar .nav-link.active, .sidebar .nav-link:hover {
+            background: #eebbc3;
+            color: #232946;
+            font-weight: bold;
+        }
+        .card {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 4px 24px rgba(44,62,80,0.08);
+            margin-bottom: 30px;
+        }
+        .card-header {
+            background: #232946;
+            color: #fff;
+            border-radius: 14px 14px 0 0;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        .nav-tabs .nav-link {
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #232946;
+            font-weight: 500;
+            font-size: 1.08rem;
+            background: none;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .nav-tabs .nav-link.active {
+            border-bottom: 3px solid #eebbc3;
+            color: #eebbc3;
+            background: none;
+        }
+        .tab-content {
+            background: #fff;
+            border-radius: 0 0 14px 14px;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.04);
+            padding: 30px 24px 24px 24px;
+        }
+        .table {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 0;
+        }
+        .table th, .table td {
+            vertical-align: middle;
+            border-top: none;
+        }
+        .table thead th {
+            background: #eebbc3;
+            color: #232946;
+            font-weight: 600;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #eebbc3 0%, #b8c1ec 100%);
+        }
+        .code-block {
+            background: #232946;
+            color: #eebbc3;
+            padding: 18px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Fira Mono', 'Consolas', monospace;
+            margin-bottom: 18px;
+        }
+        .visualization-container img {
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+            margin-bottom: 18px;
+        }
+        .result-card {
+            background: #eebbc3;
+            color: #232946;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+        .step-content {
+            margin-bottom: 24px;
+        }
+        .alert-info {
+            background: #b8c1ec;
+            color: #232946;
+            border: none;
+            border-radius: 8px;
+        }
+        .form-control, .custom-select {
+            border-radius: 6px;
+            border: 1px solid #b8c1ec;
+        }
+        .btn-primary, .btn-success, .btn-danger, .btn-secondary {
+            background: linear-gradient(90deg, #eebbc3 0%, #b8c1ec 100%);
+            color: #232946;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background 0.2s, color 0.2s;
+        }
+        .btn-primary:hover, .btn-success:hover, .btn-danger:hover, .btn-secondary:hover {
+            background: #232946;
+            color: #eebbc3;
+        }
+        .table-responsive {
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.04);
+        }
+        @media (max-width: 991px) {
+            .sidebar {
+                min-height: auto;
+            }
+            .tab-content {
+                padding: 18px 6px 12px 6px;
+            }
+        }
+        pre{
+            background: #232946;
+            color: #eebbc3;
+            padding: 18px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Fira Mono', 'Consolas', monospace;
+            margin-bottom: 18px;
+        }
         #chart {
             height: 400px;
         }
@@ -37,10 +183,14 @@
                 <div class="sidebar-sticky">
                     <h5>Flood Prediction</h5>
                     <hr>
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link active" href="#">
+                    <ul class="nav flex-column">                        <li class="nav-item">
+                            <a class="nav-link active" href="/">
                                 Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/simulation">
+                                Simulation
                             </a>
                         </li>
                         <li class="nav-item">

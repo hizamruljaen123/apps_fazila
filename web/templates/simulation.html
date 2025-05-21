@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Simulation</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- ECharts CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            background: #f4f6fb;
+            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+        }
+        .sidebar {
+            background: #232946;
+            min-height: 100vh;
+            color: #fff;
+            box-shadow: 2px 0 8px rgba(44,62,80,0.07);
+        }
+        .sidebar h5 {
+            color: #eebbc3;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .sidebar .nav-link {
+            color: #b8c1ec;
+            font-size: 1.05rem;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .sidebar .nav-link.active, .sidebar .nav-link:hover {
+            background: #eebbc3;
+            color: #232946;
+            font-weight: bold;
+        }
+        .card {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 4px 24px rgba(44,62,80,0.08);
+            margin-bottom: 30px;
+        }
+        .card-header {
+            background: #232946;
+            color: #fff;
+            border-radius: 14px 14px 0 0;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        .nav-tabs .nav-link {
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #232946;
+            font-weight: 500;
+            font-size: 1.08rem;
+            background: none;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .nav-tabs .nav-link.active {
+            border-bottom: 3px solid #eebbc3;
+            color: #eebbc3;
+            background: none;
+        }
+        .tab-content {
+            background: #fff;
+            border-radius: 0 0 14px 14px;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.04);
+            padding: 30px 24px 24px 24px;
+        }
+        .table {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 0;
+        }
+        .table th, .table td {
+            vertical-align: middle;
+            border-top: none;
+        }
+        .table thead th {
+            background: #eebbc3;
+            color: #232946;
+            font-weight: 600;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #eebbc3 0%, #b8c1ec 100%);
+        }
+        .code-block {
+            background: #232946;
+            color: #eebbc3;
+            padding: 18px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Fira Mono', 'Consolas', monospace;
+            margin-bottom: 18px;
+        }
+        .visualization-container img {
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+            margin-bottom: 18px;
+        }
+        .result-card {
+            background: #eebbc3;
+            color: #232946;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+        .step-content {
+            margin-bottom: 24px;
+        }
+        .alert-info {
+            background: #b8c1ec;
+            color: #232946;
+            border: none;
+            border-radius: 8px;
+        }
+        .form-control, .custom-select {
+            border-radius: 6px;
+            border: 1px solid #b8c1ec;
+        }
+        .btn-primary, .btn-success {
+            background: linear-gradient(90deg, #eebbc3 0%, #b8c1ec 100%);
+            color: #232946;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background 0.2s, color 0.2s;
+        }
+        .btn-primary:hover, .btn-success:hover {
+            background: #232946;
+            color: #eebbc3;
+        }
+        .table-responsive {
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.04);
+        }
+        @media (max-width: 991px) {
+            .sidebar {
+                min-height: auto;
+            }
+            .tab-content {
+                padding: 18px 6px 12px 6px;
+            }
+        }
+
+        pre{
+            background: #232946;
+            color: #eebbc3;
+            padding: 18px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Fira Mono', 'Consolas', monospace;
+            margin-bottom: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+                <div class="sidebar-sticky">
+                    <h5>Flood Prediction</h5>
+                    <hr>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/simulation">
+                                Simulation
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/" id="trainButton" data-toggle="modal" data-target="#trainModal">
+                                Training Model
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="modal" data-target="#dataLatihModal" onclick="loadDataLatih()">
+                                Data Latih
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="modal" data-target="#dataUjiModal" onclick="loadDataUji()">
+                                Data Uji
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="modal" data-target="#addTrainDataModal">
+                                Tambah Data Latih
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="modal" data-target="#addTestDataModal">
+                               Tambah Data Uji
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Model Simulation</h1>
+                </div>
+
+                <!-- Database Overview -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>Database Overview</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">Data Statistik</div>
+                                    <div class="card-body">
+                                        <table class="table table-bordered">
+                                            <tr>
+                                                <th>Total Data Latih</th>
+                                                <td>{{ db_stats.train_count }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Total Data Uji</th>
+                                                <td>{{ db_stats.test_count }}</td>
+                                            </tr>
+                                        </table>
+                                        
+                                        <h5 class="mt-4">Distribusi Potensi Banjir</h5>
+                                        <table class="table table-bordered table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Potensi Banjir</th>
+                                                    <th>Jumlah Data</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for label, count in db_stats.label_counts.items() %}
+                                                <tr>
+                                                    <td>{{ label }}</td>
+                                                    <td>{{ count }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                        
+                                        <h5 class="mt-4">Distribusi Wilayah</h5>
+                                        <table class="table table-bordered table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Wilayah</th>
+                                                    <th>Jumlah Data</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for region, count in db_stats.region_counts.items() %}
+                                                <tr>
+                                                    <td>{{ region }}</td>
+                                                    <td>{{ count }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">Contoh Data Latih</div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>ID</th>
+                                                        <th>Wilayah</th>
+                                                        <th>Bulan</th>
+                                                        <th>Tahun</th>
+                                                        <th>Curah Hujan</th>
+                                                        <th>Suhu</th>
+                                                        <th>Tinggi Air</th>
+                                                        <th>Potensi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for sample in db_stats.train_samples %}
+                                                    <tr>
+                                                        <td>{{ sample[0] }}</td>
+                                                        <td>{{ sample[1] }}</td>
+                                                        <td>{{ sample[2] }}</td>
+                                                        <td>{{ sample[3] }}</td>
+                                                        <td>{{ sample[4] }}</td>
+                                                        <td>{{ sample[5] }}</td>
+                                                        <td>{{ sample[6] }}</td>
+                                                        <td>{{ sample[7] }}</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">Statistik Fitur</div>
+                                    <div class="card-body">
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Fitur</th>
+                                                    <th>Min</th>
+                                                    <th>Max</th>
+                                                    <th>Rata-rata</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Curah Hujan</td>
+                                                    <td>{{ "%.2f"|format(db_stats.feature_stats.curah_hujan.min) }}</td>
+                                                    <td>{{ "%.2f"|format(db_stats.feature_stats.curah_hujan.max) }}</td>
+                                                    <td>{{ "%.2f"|format(db_stats.feature_stats.curah_hujan.avg) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Suhu</td>
+                                                    <td>{{ "%.2f"|format(db_stats.feature_stats.suhu.min) }}</td>
+                                                    <td>{{ "%.2f"|format(db_stats.feature_stats.suhu.max) }}</td>
+                                                    <td>{{ "%.2f"|format(db_stats.feature_stats.suhu.avg) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Tinggi Muka Air</td>
+                                                    <td>{{ "%.2f"|format(db_stats.feature_stats.tinggi_air.min) }}</td>
+                                                    <td>{{ "%.2f"|format(db_stats.feature_stats.tinggi_air.max) }}</td>
+                                                    <td>{{ "%.2f"|format(db_stats.feature_stats.tinggi_air.avg) }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Database Statistics -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        Distribusi Tahunan dan Bulanan
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h5>Distribusi Data per Tahun</h5>
+                                                <table class="table table-bordered table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Tahun</th>
+                                                            <th>Jumlah Data</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for year, count in db_stats.year_distribution.items() %}
+                                                        <tr>
+                                                            <td>{{ year }}</td>
+                                                            <td>{{ count }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h5>Distribusi Data per Bulan</h5>
+                                                <table class="table table-bordered table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Bulan</th>
+                                                            <th>Jumlah Data</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for month, count in db_stats.month_distribution.items() %}
+                                                        <tr>
+                                                            <td>{{ month }}</td>
+                                                            <td>{{ count }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Algorithm Selection Tabs -->
+                <ul class="nav nav-tabs" id="algorithmTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="#lm-tab">Levenberg-Marquardt (LM)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#rnn-tab">Recurrent Neural Network (RNN)</a>
+                    </li>
+                </ul>
+
+                <div class="tab-content mt-3">
+                    <!-- LM Algorithm Tab Content -->
+                    <div class="tab-pane fade show active" id="lm-tab">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Levenberg-Marquardt Algorithm</h3>
+                            </div>
+                            <div class="card-body">
+                                <p>Levenberg-Marquardt adalah algoritma optimasi yang digunakan untuk menyelesaikan masalah kuadrat terkecil non-linear. Merupakan kombinasi dari metode Gauss-Newton dan gradient descent.</p>
+                                
+                                <!-- LM Implementation Steps Tabs -->
+                                <ul class="nav nav-tabs" id="lmStepTabs">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" data-toggle="tab" href="#lm-step1">1. Parameter Input</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" data-toggle="tab" href="#lm-step2">2. Persiapan Data</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" data-toggle="tab" href="#lm-step3">3. Model Training</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" data-toggle="tab" href="#lm-step4">4. Hasil & Visualisasi</a>
+                                    </li>
+                                </ul>
+
+                                <!-- LM Steps Content -->
+                                <div class="tab-content mt-3">
+                                    <!-- Step 1: Parameters -->
+                                    <div class="tab-pane fade show active" id="lm-step1">
+                                        <div class="card">
+                                            <div class="card-header">Parameter Input</div>
+                                            <div class="card-body">
+                                                <form id="lmForm">
+                                                    <div class="form-group">
+                                                        <label for="lm-hidden-size">Jumlah Neuron Hidden Layer:</label>
+                                                        <input type="number" class="form-control" id="lm-hidden-size" value="10" min="1">
+                                                        <small class="form-text text-muted">Jumlah neuron pada hidden layer model.</small>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="lm-iterations">Jumlah Iterasi:</label>
+                                                        <input type="number" class="form-control" id="lm-iterations" value="500" min="100">
+                                                        <small class="form-text text-muted">Jumlah iterasi maksimum untuk algoritma Levenberg-Marquardt.</small>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="lm-learning-rate">Learning Rate:</label>
+                                                        <input type="number" class="form-control" id="lm-learning-rate" value="0.01" step="0.001" min="0.001">
+                                                        <small class="form-text text-muted">Kecepatan pembelajaran model.</small>
+                                                    </div>
+                                                    <button type="button" class="btn btn-primary" id="lm-run">Jalankan Simulasi LM</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Step 2: Data Preparation -->
+                                    <div class="tab-pane fade" id="lm-step2">
+                                        <div class="card">
+                                            <div class="card-header">Persiapan Data</div>
+                                            <div class="card-body">
+                                                <h5>Preprocessing Data</h5>
+                                                <div class="code-block">
+                                                    <pre># Preprocessing data
+le = LabelEncoder()
+data['Potensi_Banjir'] = le.fit_transform(data['Potensi_Banjir'])
+
+# Features and target
+X = data[['Curah_Hujan', 'Suhu', 'Tinggi_Muka_Air']].values
+y = data['Potensi_Banjir'].values
+max_val = np.max(y)
+y = y / max_val  # Scale target values
+
+# Split data
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y, test_size=0.3, random_state=42)</pre>
+                                                </div>
+                                                <div id="lm-data-info" class="mt-4">
+                                                    <h5>Informasi Data</h5>
+                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>                                    <!-- Step 3: Model Training -->
+                                    <div class="tab-pane fade" id="lm-step3">
+                                        <div class="card">
+                                            <div class="card-header">Model Training dengan Levenberg-Marquardt</div>
+                                            <div class="card-body">
+                                                <h5>Penjelasan Algoritma Levenberg-Marquardt</h5>
+                                                <div class="alert alert-info">
+                                                    <p>Algoritma Levenberg-Marquardt (LM) adalah metode optimasi yang menggabungkan algoritma gradient descent dan Gauss-Newton untuk menyelesaikan masalah least-squares non-linear dengan cepat dan efisien. Algoritma ini digunakan untuk melatih neural network dengan menemukan parameter optimal yang meminimalkan fungsi kesalahan.</p>
+                                                    
+                                                    <p><strong>Langkah-langkah Algoritma LM:</strong></p>
+                                                    <ol>
+                                                        <li>Inisialisasi bobot neural network secara acak</li>
+                                                        <li>Hitung error dengan forward pass pada neural network</li>
+                                                        <li>Hitung Jacobian matrix (turunan partial error terhadap setiap bobot)</li>
+                                                        <li>Update bobot menggunakan formula LM: <code>Δw = -(J<sup>T</sup>J + λI)<sup>-1</sup>J<sup>T</sup>e</code>
+                                                            <ul>
+                                                                <li>J adalah Jacobian matrix</li>
+                                                                <li>e adalah vektor error</li>
+                                                                <li>λ adalah parameter damping (pengatur keseimbangan)</li>
+                                                                <li>I adalah identity matrix</li>
+                                                            </ul>
+                                                        </li>
+                                                        <li>Jika error berkurang, kurangi λ dan terima update</li>
+                                                        <li>Jika error meningkat, tingkatkan λ dan hitung update lagi</li>
+                                                        <li>Ulangi langkah 2-6 hingga konvergen</li>
+                                                    </ol>
+                                                </div>
+                                                
+                                                <h5 class="mt-4">Implementasi Algoritma LM</h5>
+                                                <div class="code-block">
+                                                    <pre># Define error function for LM algorithm
+def error_function(weights, X, y):
+    model.unflatten_weights(weights)
+    y_hat = model.forward(X)
+    return (y_hat - y).ravel()
+
+# Initialize weights
+initial_weights = model.flatten_weights()
+
+# Run Levenberg-Marquardt optimization
+optimal_weights, success = leastsq(
+    error_function, initial_weights, 
+    args=(X_train, y_train.reshape(-1, 1)), 
+    maxfev=iterations
+)
+
+# Update model with optimal weights
+model.unflatten_weights(optimal_weights)</pre>
+                                                </div>
+                                                
+                                                <h5 class="mt-4">Keuntungan Algoritma LM</h5>
+                                                <ul>
+                                                    <li>Konvergensi lebih cepat dibanding backpropagation standar</li>
+                                                    <li>Menggabungkan kelebihan gradient descent dan Gauss-Newton</li>
+                                                    <li>Robust terhadap masalah bad initialization</li>
+                                                    <li>Sangat efektif untuk masalah least-squares</li>
+                                                </ul>
+    error_function, initial_weights, 
+    args=(X_train, y_train.reshape(-1, 1)), maxfev=iterations)</pre>
+                                                </div>
+                                                <div id="lm-training-progress" class="mt-4">
+                                                    <h5>Progress Pelatihan</h5>
+                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Step 4: Results & Visualization -->
+                                    <div class="tab-pane fade" id="lm-step4">
+                                        <div class="card">
+                                            <div class="card-header">Hasil dan Visualisasi</div>
+                                            <div class="card-body">
+                                                <div id="lm-metrics" class="mb-4">
+                                                    <h5>Metrik Evaluasi</h5>
+                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                </div>                                                <div class="row visualization-container">
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Grafik Loss</div>
+                                                            <div class="card-body">
+                                                                <div id="lm-loss-plot">
+                                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Visualisasi t-SNE</div>
+                                                            <div class="card-body">
+                                                                <div id="lm-tsne-plot">
+                                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="row mt-4 visualization-container">
+                                                    <div class="col-md-12">
+                                                        <div class="card">
+                                                            <div class="card-header">Distribusi Fitur berdasarkan Potensi Banjir</div>
+                                                            <div class="card-body">
+                                                                <div id="lm-dist-plot">
+                                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row mt-4 visualization-container">
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Confusion Matrix</div>
+                                                            <div class="card-body">
+                                                                <div id="lm-cm-plot">
+                                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Pemetaan Hasil Prediksi</div>
+                                                            <div class="card-body">
+                                                                <div id="lm-map-container">
+                                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RNN Algorithm Tab Content -->
+                    <div class="tab-pane fade" id="rnn-tab">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Recurrent Neural Network (RNN)</h3>
+                            </div>
+                            <div class="card-body">
+                                <p>Recurrent Neural Network adalah jenis jaringan saraf tiruan yang memiliki koneksi loop, memungkinkan jaringan untuk mempertahankan informasi dari langkah sebelumnya untuk penggunaan di masa depan.</p>
+                                
+                                <!-- RNN Implementation Steps Tabs -->
+                                <ul class="nav nav-tabs" id="rnnStepTabs">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" data-toggle="tab" href="#rnn-step1">1. Parameter Input</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" data-toggle="tab" href="#rnn-step2">2. Persiapan Data</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" data-toggle="tab" href="#rnn-step3">3. Model Training</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" data-toggle="tab" href="#rnn-step4">4. Hasil & Visualisasi</a>
+                                    </li>
+                                </ul>
+
+                                <!-- RNN Steps Content -->
+                                <div class="tab-content mt-3">
+                                    <!-- Step 1: Parameters -->
+                                    <div class="tab-pane fade show active" id="rnn-step1">
+                                        <div class="card">
+                                            <div class="card-header">Parameter Input</div>
+                                            <div class="card-body">
+                                                <form id="rnnForm">
+                                                    <div class="form-group">
+                                                        <label for="rnn-hidden-size">Jumlah Neuron Hidden Layer:</label>
+                                                        <input type="number" class="form-control" id="rnn-hidden-size" value="32" min="1">
+                                                        <small class="form-text text-muted">Jumlah neuron pada hidden layer model RNN.</small>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="rnn-epochs">Jumlah Epochs:</label>
+                                                        <input type="number" class="form-control" id="rnn-epochs" value="100" min="10">
+                                                        <small class="form-text text-muted">Jumlah epochs untuk melatih model RNN.</small>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="rnn-learning-rate">Learning Rate:</label>
+                                                        <input type="number" class="form-control" id="rnn-learning-rate" value="0.01" step="0.001" min="0.001">
+                                                        <small class="form-text text-muted">Kecepatan pembelajaran model.</small>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="rnn-batch-size">Batch Size:</label>
+                                                        <input type="number" class="form-control" id="rnn-batch-size" value="16" min="1">
+                                                        <small class="form-text text-muted">Ukuran batch dalam satu iterasi.</small>
+                                                    </div>
+                                                    <button type="button" class="btn btn-primary" id="rnn-run">Jalankan Simulasi RNN</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Step 2: Data Preparation -->
+                                    <div class="tab-pane fade" id="rnn-step2">
+                                        <div class="card">
+                                            <div class="card-header">Persiapan Data</div>
+                                            <div class="card-body">
+                                                <h5>Preprocessing Data</h5>
+                                                <div class="code-block">
+                                                    <pre># Convert to PyTorch tensors
+X_train_tensor = torch.FloatTensor(X_train).unsqueeze(1)  # Add sequence dimension
+y_train_tensor = torch.FloatTensor(y_train).unsqueeze(1)
+X_test_tensor = torch.FloatTensor(X_test).unsqueeze(1)
+y_test_tensor = torch.FloatTensor(y_test).unsqueeze(1)</pre>
+                                                </div>
+                                                <div id="rnn-data-info" class="mt-4">
+                                                    <h5>Informasi Data</h5>
+                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>                                    <!-- Step 3: Model Training -->
+                                    <div class="tab-pane fade" id="rnn-step3">
+                                        <div class="card">
+                                            <div class="card-header">Model Training dengan RNN</div>
+                                            <div class="card-body">
+                                                <h5>Penjelasan Algoritma Recurrent Neural Network (RNN)</h5>
+                                                <div class="alert alert-info">
+                                                    <p>Recurrent Neural Network (RNN) adalah jenis neural network yang dirancang untuk memproses data sekuensial dengan mempertahankan "state" atau "memory" dari input sebelumnya. Ini sangat berguna untuk prediksi data time-series seperti data banjir.</p>
+                                                    
+                                                    <p><strong>Cara Kerja RNN:</strong></p>
+                                                    <ol>
+                                                        <li>RNN memiliki loop internal yang memungkinkan informasi bertahan</li>
+                                                        <li>Pada setiap langkah waktu t, RNN menerima input x<sub>t</sub> dan state sebelumnya h<sub>t-1</sub></li>
+                                                        <li>State baru diperbarui: h<sub>t</sub> = tanh(W<sub>h</sub>h<sub>t-1</sub> + W<sub>x</sub>x<sub>t</sub> + b)</li>
+                                                        <li>Output dihitung: y<sub>t</sub> = W<sub>y</sub>h<sub>t</sub> + b<sub>y</sub></li>
+                                                        <li>Bobot W diperbarui menggunakan Backpropagation Through Time (BPTT)</li>
+                                                    </ol>
+                                                    
+                                                    <p><strong>Keunggulan RNN:</strong></p>
+                                                    <ul>
+                                                        <li>Dapat menangkap pola temporal dalam data</li>
+                                                        <li>Mempertimbangkan konteks historis, cocok untuk prediksi banjir yang dipengaruhi oleh pola cuaca sebelumnya</li>
+                                                        <li>Fleksibel untuk input dengan panjang bervariasi</li>
+                                                    </ul>
+                                                </div>
+                                                
+                                                <h5 class="mt-4">Arsitektur Model RNN</h5>
+                                                <div class="code-block">
+                                                    <pre>class RNNModel(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(RNNModel, self).__init__()
+        self.hidden_size = hidden_size
+        self.rnn = nn.RNN(input_size, hidden_size, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
+        
+    def forward(self, x):
+        batch_size = x.size(0)
+        h0 = torch.zeros(1, batch_size, self.hidden_size).to(x.device)
+        out, _ = self.rnn(x, h0)
+        out = self.fc(out[:, -1, :])
+        return out</pre>
+                                                </div>
+                                                
+                                                <h5 class="mt-4">Proses Training RNN</h5>
+                                                <div class="code-block">
+                                                    <pre># Training loop
+for epoch in range(1, epochs + 1):
+    # Training
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
+    loss.backward()
+    optimizer.step()
+    
+    # Log metrics every step_size epochs
+    if epoch % step_size == 0 or epoch == epochs:
+        model.eval()
+        with torch.no_grad():
+            train_outputs = model(X_train_tensor)
+            test_outputs = model(X_test_tensor)
+            train_loss = criterion(train_outputs, y_train_tensor).item()
+            test_loss = criterion(test_outputs, y_test_tensor).item()</pre>
+                                                </div>
+                                                
+                                                <div id="rnn-training-progress" class="mt-4">
+                                                    <h5>Progress Pelatihan</h5>
+                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                </div>
+                                                <div id="rnn-epoch-table" class="mt-4">
+                                                    <h5>Tabel Progress Epoch</h5>
+                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Step 4: Results & Visualization -->
+                                    <div class="tab-pane fade" id="rnn-step4">
+                                        <div class="card">
+                                            <div class="card-header">Hasil dan Visualisasi</div>
+                                            <div class="card-body">
+                                                <div id="rnn-metrics" class="mb-4">
+                                                    <h5>Metrik Evaluasi</h5>
+                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                </div>                                                <div class="row visualization-container">
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Grafik Loss</div>
+                                                            <div class="card-body">
+                                                                <div id="rnn-loss-plot">
+                                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Visualisasi t-SNE</div>
+                                                            <div class="card-body">
+                                                                <div id="rnn-tsne-plot">
+                                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="row mt-4 visualization-container">
+                                                    <div class="col-md-12">
+                                                        <div class="card">
+                                                            <div class="card-header">Distribusi Fitur berdasarkan Potensi Banjir</div>
+                                                            <div class="card-body">
+                                                                <div id="rnn-dist-plot">
+                                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row mt-4 visualization-container">
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Confusion Matrix</div>
+                                                            <div class="card-body">
+                                                                <div id="rnn-cm-plot">
+                                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Pemetaan Hasil Prediksi</div>
+                                                            <div class="card-body">
+                                                                <div id="rnn-map-container">
+                                                                    <p>Menunggu simulasi dijalankan...</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script>
+        // Wait for DOM to be ready
+        $(document).ready(function() {
+            // Handle LM Run Button
+            $('#lm-run').click(function() {
+                const hiddenSize = parseInt($('#lm-hidden-size').val());
+                const iterations = parseInt($('#lm-iterations').val());
+                const learningRate = parseFloat($('#lm-learning-rate').val());
+                
+                // Show loading state
+                $('#lm-run').prop('disabled', true);
+                $('#lm-run').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Simulasi sedang berjalan...');
+                
+                // Call the server
+                $.ajax({
+                    url: '/simulate_lm',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        hidden_size: hiddenSize,
+                        iterations: iterations,
+                        learning_rate: learningRate
+                    }),
+                    success: function(response) {
+                        // Update step tabs
+                        $('#lmStepTabs a[href="#lm-step2"]').tab('show');
+                          // Update data info
+                        const dataInfo = `
+                            <h5>Informasi Data</h5>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th>Fitur</th>
+                                    <td>Curah Hujan, Suhu, Tinggi Muka Air</td>
+                                </tr>
+                                <tr>
+                                    <th>Target</th>
+                                    <td>Potensi Banjir (0-3)</td>
+                                </tr>
+                                <tr>
+                                    <th>Total Data Latih</th>
+                                    <td>${response.data_stats.train_count} records (dari database)</td>
+                                </tr>
+                                <tr>
+                                    <th>Total Data Uji</th>
+                                    <td>${response.data_stats.test_count} records (dari database)</td>
+                                </tr>
+                                <tr>
+                                    <th>Training Set</th>
+                                    <td>70%</td>
+                                </tr>
+                                <tr>
+                                    <th>Testing Set</th>
+                                    <td>30%</td>
+                                </tr>
+                                <tr>
+                                    <th>Database</th>
+                                    <td>MySQL - data_banjir (tabel: data_banjir, data_uji)</td>
+                                </tr>
+                            </table>
+                        `;
+                        $('#lm-data-info').html(dataInfo);
+                        
+                        // After 2 seconds, move to next step
+                        setTimeout(function() {
+                            $('#lmStepTabs a[href="#lm-step3"]').tab('show');
+                            
+                            // Update training progress
+                            const trainingInfo = `
+                                <h5>Progress Pelatihan</h5>
+                                <div class="progress mb-3">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">100%</div>
+                                </div>
+                                <p>Algoritma LM telah menyelesaikan ${iterations} iterasi.</p>
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Metrik</th>
+                                            <th>Nilai</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Train Loss</td>
+                                            <td>${response.metrics.train_mse.toFixed(4)}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Test Loss</td>
+                                            <td>${response.metrics.test_mse.toFixed(4)}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            `;
+                            $('#lm-training-progress').html(trainingInfo);
+                            
+                            // After 2 more seconds, show results
+                            setTimeout(function() {
+                                $('#lmStepTabs a[href="#lm-step4"]').tab('show');
+                                
+                                // Update metrics
+                                const metricsHtml = `
+                                    <h5>Metrik Evaluasi</h5>
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Metrik</th>
+                                                <th>Training</th>
+                                                <th>Testing</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Mean Squared Error</td>
+                                                <td>${response.metrics.train_mse.toFixed(4)}</td>
+                                                <td>${response.metrics.test_mse.toFixed(4)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Accuracy</td>
+                                                <td>${(response.metrics.train_acc * 100).toFixed(2)}%</td>
+                                                <td>${(response.metrics.test_acc * 100).toFixed(2)}%</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                `;
+                                $('#lm-metrics').html(metricsHtml);
+                                  // Update plots
+                                $('#lm-loss-plot').html(`<img src="data:image/png;base64,${response.visualizations.loss_plot}" alt="Loss Plot" class="img-fluid">`);
+                                $('#lm-tsne-plot').html(`<img src="data:image/png;base64,${response.visualizations.tsne_plot}" alt="t-SNE Plot" class="img-fluid">`);
+                                $('#lm-cm-plot').html(`<img src="data:image/png;base64,${response.visualizations.confusion_matrix}" alt="Confusion Matrix" class="img-fluid">`);
+                                $('#lm-dist-plot').html(`<img src="data:image/png;base64,${response.visualizations.distribution_plot}" alt="Distribution Plot" class="img-fluid">`);
+                                $('#lm-map-container').html(response.visualizations.map_html);
+                                
+                                // Reset button
+                                $('#lm-run').prop('disabled', false);
+                                $('#lm-run').html('Jalankan Simulasi LM');
+                            }, 2000);
+                        }, 2000);
+                    },
+                    error: function(error) {
+                        alert('Error: ' + error.responseText);
+                        $('#lm-run').prop('disabled', false);
+                        $('#lm-run').html('Jalankan Simulasi LM');
+                    }
+                });
+            });
+            
+            // Handle RNN Run Button
+            $('#rnn-run').click(function() {
+                const hiddenSize = parseInt($('#rnn-hidden-size').val());
+                const epochs = parseInt($('#rnn-epochs').val());
+                const learningRate = parseFloat($('#rnn-learning-rate').val());
+                const batchSize = parseInt($('#rnn-batch-size').val());
+                
+                // Show loading state
+                $('#rnn-run').prop('disabled', true);
+                $('#rnn-run').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Simulasi sedang berjalan...');
+                
+                // Call the server
+                $.ajax({
+                    url: '/simulate_rnn',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        hidden_size: hiddenSize,
+                        epochs: epochs,
+                        learning_rate: learningRate,
+                        batch_size: batchSize
+                    }),
+                    success: function(response) {
+                        // Update step tabs
+                        $('#rnnStepTabs a[href="#rnn-step2"]').tab('show');
+                        
+                        // Update data info
+                        const dataInfo = `
+                            <h5>Informasi Data</h5>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th>Fitur</th>
+                                    <td>Curah Hujan, Suhu, Tinggi Muka Air</td>
+                                </tr>
+                                <tr>
+                                    <th>Target</th>
+                                    <td>Potensi Banjir (0-3)</td>
+                                </tr>
+                                <tr>
+                                    <th>Jumlah Data</th>
+                                    <td>Hasil perhitungan dari database</td>
+                                </tr>
+                                <tr>
+                                    <th>Training Set</th>
+                                    <td>70%</td>
+                                </tr>
+                                <tr>
+                                    <th>Testing Set</th>
+                                    <td>30%</td>
+                                </tr>
+                                <tr>
+                                    <th>Format Input</th>
+                                    <td>Tensor 3D untuk RNN (batch_size, seq_len, input_size)</td>
+                                </tr>
+                            </table>
+                        `;
+                        $('#rnn-data-info').html(dataInfo);
+                        
+                        // After 2 seconds, move to next step
+                        setTimeout(function() {
+                            $('#rnnStepTabs a[href="#rnn-step3"]').tab('show');
+                            
+                            // Update training progress
+                            const trainingInfo = `
+                                <h5>Progress Pelatihan</h5>
+                                <div class="progress mb-3">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">100%</div>
+                                </div>
+                                <p>RNN telah menyelesaikan ${epochs} epoch.</p>
+                            `;
+                            $('#rnn-training-progress').html(trainingInfo);
+                            
+                            // Create epoch table
+                            let tableHtml = `
+                                <h5>Tabel Progress Epoch</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Epoch</th>
+                                                <th>Train Loss</th>
+                                                <th>Test Loss</th>
+                                                <th>Train Acc</th>
+                                                <th>Test Acc</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                            `;
+                            
+                            // Only show a few representative epochs to keep table manageable
+                            const epochsToShow = response.epoch_data.filter((item, index, array) => 
+                                index === 0 || index === array.length - 1 || index % Math.max(1, Math.floor(array.length / 10)) === 0
+                            );
+                            
+                            for (let epochData of epochsToShow) {
+                                tableHtml += `
+                                    <tr>
+                                        <td>${epochData.epoch}</td>
+                                        <td>${epochData.train_loss.toFixed(4)}</td>
+                                        <td>${epochData.test_loss.toFixed(4)}</td>
+                                        <td>${(epochData.train_acc * 100).toFixed(2)}%</td>
+                                        <td>${(epochData.test_acc * 100).toFixed(2)}%</td>
+                                    </tr>
+                                `;
+                            }
+                            
+                            tableHtml += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                            
+                            $('#rnn-epoch-table').html(tableHtml);
+                            
+                            // After 2 more seconds, show results
+                            setTimeout(function() {
+                                $('#rnnStepTabs a[href="#rnn-step4"]').tab('show');
+                                
+                                // Update metrics
+                                const metricsHtml = `
+                                    <h5>Metrik Evaluasi</h5>
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Metrik</th>
+                                                <th>Training</th>
+                                                <th>Testing</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Mean Squared Error</td>
+                                                <td>${response.metrics.train_mse.toFixed(4)}</td>
+                                                <td>${response.metrics.test_mse.toFixed(4)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Accuracy</td>
+                                                <td>${(response.metrics.train_acc * 100).toFixed(2)}%</td>
+                                                <td>${(response.metrics.test_acc * 100).toFixed(2)}%</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                `;
+                                $('#rnn-metrics').html(metricsHtml);
+                                  // Update plots
+                                $('#rnn-loss-plot').html(`<img src="data:image/png;base64,${response.visualizations.loss_plot}" alt="Loss Plot" class="img-fluid">`);
+                                $('#rnn-tsne-plot').html(`<img src="data:image/png;base64,${response.visualizations.tsne_plot}" alt="t-SNE Plot" class="img-fluid">`);
+                                $('#rnn-cm-plot').html(`<img src="data:image/png;base64,${response.visualizations.confusion_matrix}" alt="Confusion Matrix" class="img-fluid">`);
+                                $('#rnn-dist-plot').html(`<img src="data:image/png;base64,${response.visualizations.distribution_plot}" alt="Distribution Plot" class="img-fluid">`);
+                                $('#rnn-map-container').html(response.visualizations.map_html);
+                                
+                                // Reset button
+                                $('#rnn-run').prop('disabled', false);
+                                $('#rnn-run').html('Jalankan Simulasi RNN');
+                            }, 2000);
+                        }, 2000);
+                    },
+                    error: function(error) {
+                        alert('Error: ' + error.responseText);
+                        $('#rnn-run').prop('disabled', false);
+                        $('#rnn-run').html('Jalankan Simulasi RNN');
+                    }
+                });
+            });
+            
+            // Update sidebar with active link
+            $('.sidebar .nav-link').removeClass('active');
+            $('.sidebar .nav-link[href="/simulation"]').addClass('active');
+        });
+    </script>
+</body>
+</html>
