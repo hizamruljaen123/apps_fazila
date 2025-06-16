@@ -27,6 +27,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
+import warnings
+warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
 CORS(app)
@@ -38,15 +40,27 @@ max_label_value = None
 X_train, X_test, y_train, y_test = None, None, None, None
 data_train, data_test = None, None
 
-# Coordinates of each region
+# Coordinates of each region with detailed information
 coordinates = {
     'Baktiya': [5.0621243, 97.3258354],
     'Lhoksukon': [5.0517222, 97.3078233],
-    'Langkahan': [4.9211586, 97.1261701],
+    'Langkahan': [4.9211586, 97.1261701],  # Focus area for detailed simulation
     'Cot Girek': [4.8616275, 97.2673567],
     'Matangkuli': [5.0306322, 97.2316173],
     'Tanah Luas': [4.9826373, 97.0425453],
     'Stamet Aceh Utara': [5.228798, 96.9449662]
+}
+
+# Enhanced region information for simulation
+region_info = {
+    'Langkahan': {
+        'name': 'Langkahan',
+        'coordinates': [4.9211586, 97.1261701],
+        'description': 'Daerah rentan banjir dengan topografi rendah',
+        'population': 'Sekitar 15,000 jiwa',
+        'risk_factors': ['Drainase kurang baik', 'Curah hujan tinggi', 'Dekat dengan sungai'],
+        'mitigation': ['Perbaikan saluran air', 'Early warning system', 'Tanggul pengaman']
+    }
 }
 
 # Mapping for labels
@@ -89,6 +103,34 @@ class RNNModel(nn.Module):
             history['epoch'].append(epoch)
             
         return history
+
+# Helper function to safely convert tensor to scalar value
+def tensor_to_scalar(tensor_value):
+    """Safely convert tensor to scalar value"""
+    if torch.is_tensor(tensor_value):
+        return tensor_value.detach().cpu().numpy().flatten()[0]
+    elif isinstance(tensor_value, np.ndarray):
+        return tensor_value.flatten()[0] if tensor_value.size > 0 else float(tensor_value)
+    elif isinstance(tensor_value, (np.float32, np.float64)):
+        return float(tensor_value)
+    else:
+        return float(tensor_value)
+
+# Helper function to safely create tensor from various inputs
+def safe_tensor_creation(value, target_shape=None):
+    """Safely create tensor from various input types"""
+    if torch.is_tensor(value):
+        return value
+    elif isinstance(value, (np.float32, np.float64, float, int)):
+        # Convert scalar to appropriate tensor
+        if target_shape:
+            return torch.full(target_shape, float(value))
+        else:
+            return torch.tensor([[float(value)]])
+    elif isinstance(value, np.ndarray):
+        return torch.FloatTensor(value)
+    else:
+        return torch.FloatTensor([[float(value)]])
 
 # Function to connect to the MySQL database
 def connect_db():
@@ -1092,8 +1134,10 @@ def simulate_rnn():
                 # Predict with RNN
                 features_tensor = torch.FloatTensor(features).unsqueeze(1)  # Add sequence dimension
                 with torch.no_grad():
-                    pred = model(features_tensor).numpy().flatten()[0]
-                pred_class = int(np.round(pred * max_val))
+                    pred = model(features_tensor)
+                    # Use helper function to safely convert tensor to scalar
+                    pred_value = tensor_to_scalar(pred)
+                pred_class = int(np.round(pred_value * max_val))
                 
                 # Add marker
                 folium.Marker(
@@ -1175,6 +1219,190 @@ def simulate_rnn():
             'confusion_matrix': cm_plot,
             'distribution_plot': dist_plot, 
             'map_html': map_html
+        }
+    })
+
+# Route for 10-year flood prediction
+@app.route('/prediction-10-years')
+def prediction_10_years():
+    return render_template('prediction_10_years.html')
+
+# API endpoint for 10-year prediction simulation
+@app.route('/simulate_10_years', methods=['POST'])
+def simulate_10_years():
+    global model, scaler, label_encoder, max_label_value
+    
+    # Load the trained model
+    try:
+        load_model()
+    except Exception as e:
+        return jsonify({'error': 'Model belum dilatih! Silakan latih model terlebih dahulu.'}), 400
+    
+    # Get parameters from request
+    params = request.get_json()
+    start_year = int(params.get('start_year', 2024))
+    region = params.get('region', 'Langkahan')  # Default to Langkahan for simulation
+    scenario = params.get('scenario', 'normal')  # normal, pessimistic, optimistic
+    
+    # Define climate scenarios for 10 years prediction
+    scenarios = {
+        'normal': {
+            'curah_hujan_trend': 0.02,  # 2% increase per year
+            'suhu_trend': 0.05,         # 0.05°C increase per year
+            'tinggi_air_trend': 0.01    # 1% increase per year
+        },
+        'pessimistic': {
+            'curah_hujan_trend': 0.05,  # 5% increase per year
+            'suhu_trend': 0.1,          # 0.1°C increase per year
+            'tinggi_air_trend': 0.03    # 3% increase per year
+        },
+        'optimistic': {
+            'curah_hujan_trend': -0.01, # 1% decrease per year
+            'suhu_trend': 0.02,         # 0.02°C increase per year
+            'tinggi_air_trend': -0.005  # 0.5% decrease per year
+        }
+    }
+    
+    # Get base values from latest data in database
+    db = connect_db()
+    cursor = db.cursor()
+    
+    # Get the latest data for the selected region
+    query = """
+        SELECT Curah_Hujan, Suhu, Tinggi_Muka_Air
+        FROM data_banjir
+        WHERE Wilayah = %s
+        ORDER BY Tahun DESC,
+                 CASE Bulan
+                     WHEN 'Jan' THEN 1 WHEN 'Feb' THEN 2 WHEN 'Mar' THEN 3
+                     WHEN 'Apr' THEN 4 WHEN 'May' THEN 5 WHEN 'Jun' THEN 6
+                     WHEN 'Jul' THEN 7 WHEN 'Aug' THEN 8 WHEN 'Sep' THEN 9
+                     WHEN 'Oct' THEN 10 WHEN 'Nov' THEN 11 WHEN 'Dec' THEN 12
+                 END DESC
+        LIMIT 1
+    """
+    cursor.execute(query, (region,))
+    result = cursor.fetchone()
+    
+    if not result:
+        # Use default values if no data found
+        base_curah_hujan = 150.0
+        base_suhu = 27.0
+        base_tinggi_air = 50.0
+    else:
+        base_curah_hujan, base_suhu, base_tinggi_air = result
+    
+    cursor.close()
+    db.close()
+    
+    # Generate predictions for 10 years
+    predictions = []
+    yearly_summary = []
+    
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    scenario_config = scenarios[scenario]
+    
+    for year_offset in range(10):
+        current_year = start_year + year_offset
+        year_predictions = []
+        
+        # Calculate yearly trend multiplier
+        yearly_multiplier = 1 + (year_offset * scenario_config['curah_hujan_trend'])
+        suhu_increase = year_offset * scenario_config['suhu_trend']
+        air_multiplier = 1 + (year_offset * scenario_config['tinggi_air_trend'])
+        
+        monthly_risks = []
+        
+        for month_idx, month in enumerate(months):
+            # Add seasonal variation
+            seasonal_factor = 1 + 0.3 * np.sin(2 * np.pi * month_idx / 12)  # Peak in rainy season
+            
+            # Calculate projected values
+            curah_hujan = base_curah_hujan * yearly_multiplier * seasonal_factor
+            suhu = base_suhu + suhu_increase + np.random.normal(0, 0.5)  # Add some randomness
+            tinggi_air = base_tinggi_air * air_multiplier * seasonal_factor
+            
+            # Add some randomness to make it more realistic
+            curah_hujan += np.random.normal(0, curah_hujan * 0.1)
+            tinggi_air += np.random.normal(0, tinggi_air * 0.05)
+            
+            # Ensure positive values
+            curah_hujan = max(0, curah_hujan)
+            tinggi_air = max(0, tinggi_air)
+            
+            # Prepare features for prediction
+            features = np.array([[curah_hujan, suhu, tinggi_air]])
+            features_scaled = scaler.transform(features)
+            
+            # Make prediction
+            pred_scaled = model.forward(features_scaled)
+            pred_value = np.round(pred_scaled[0][0] * max_label_value).astype(int)
+            pred_label = label_encoder.inverse_transform([pred_value])[0]
+            
+            # Store prediction
+            prediction_data = {
+                'tahun': current_year,
+                'bulan': month,
+                'curah_hujan': round(curah_hujan, 2),
+                'suhu': round(suhu, 2),
+                'tinggi_air': round(tinggi_air, 2),
+                'prediksi_value': int(pred_value),
+                'prediksi_label': pred_label,
+                'wilayah': region
+            }
+            
+            year_predictions.append(prediction_data)
+            monthly_risks.append(pred_value)
+        
+        predictions.extend(year_predictions)
+        
+        # Calculate yearly summary
+        avg_risk = np.mean(monthly_risks)
+        max_risk = np.max(monthly_risks)
+        risk_months = sum(1 for risk in monthly_risks if risk >= 2)  # Siaga or above
+        
+        yearly_summary.append({
+            'tahun': current_year,
+            'rata_rata_risiko': round(avg_risk, 2),
+            'risiko_tertinggi': int(max_risk),
+            'bulan_berisiko': risk_months,
+            'tingkat_risiko': 'Tinggi' if avg_risk >= 2 else 'Sedang' if avg_risk >= 1 else 'Rendah'
+        })
+    
+    # Get coordinates for the region
+    coordinates_data = coordinates.get(region, [0, 0])
+    
+    # Create visualization data
+    years = list(range(start_year, start_year + 10))
+    avg_risks = [summary['rata_rata_risiko'] for summary in yearly_summary]
+    
+    # Generate trend analysis
+    trend_analysis = {
+        'trend_direction': 'Meningkat' if avg_risks[-1] > avg_risks[0] else 'Menurun',
+        'risk_increase': round(((avg_risks[-1] - avg_risks[0]) / avg_risks[0]) * 100, 1) if avg_risks[0] > 0 else 0,
+        'critical_years': [summary['tahun'] for summary in yearly_summary if summary['rata_rata_risiko'] >= 2],
+        'safe_years': [summary['tahun'] for summary in yearly_summary if summary['rata_rata_risiko'] < 1]
+    }
+    
+    return jsonify({
+        'predictions': predictions,
+        'yearly_summary': yearly_summary,
+        'trend_analysis': trend_analysis,
+        'region': region,
+        'scenario': scenario,
+        'coordinates': coordinates_data,
+        'region_info': region_info.get(region, {
+            'name': region,
+            'coordinates': coordinates_data,
+            'description': f'Wilayah {region}',
+            'population': 'Data tidak tersedia',
+            'risk_factors': ['Curah hujan', 'Kondisi drainase', 'Topografi'],
+            'mitigation': ['Monitoring', 'Early warning', 'Infrastruktur']
+        }),
+        'chart_data': {
+            'years': years,
+            'avg_risks': avg_risks,
+            'max_risks': [summary['risiko_tertinggi'] for summary in yearly_summary]
         }
     })
 

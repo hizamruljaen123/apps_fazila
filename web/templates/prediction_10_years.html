@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediksi Banjir 10 Tahun</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: #f4f6fb;
+            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+        }
+        .sidebar {
+            background: #232946;
+            min-height: 100vh;
+            color: #fff;
+            box-shadow: 2px 0 8px rgba(44,62,80,0.07);
+        }
+        .sidebar h5 {
+            color: #eebbc3;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .sidebar .nav-link {
+            color: #b8c1ec;
+            font-size: 1.05rem;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .sidebar .nav-link.active, .sidebar .nav-link:hover {
+            background: #eebbc3;
+            color: #232946;
+            font-weight: bold;
+        }
+        .card {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 4px 24px rgba(44,62,80,0.08);
+            margin-bottom: 30px;
+        }
+        .card-header {
+            background: #232946;
+            color: #fff;
+            border-radius: 14px 14px 0 0;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #eebbc3 0%, #b8c1ec 100%);
+            color: #232946;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background 0.2s, color 0.2s;
+        }
+        .btn-primary:hover {
+            background: #232946;
+            color: #eebbc3;
+        }
+        .prediction-card {
+            background: linear-gradient(135deg, #eebbc3 0%, #b8c1ec 100%);
+            color: #232946;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .risk-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        .risk-aman { background: #28a745; color: white; }
+        .risk-waspada { background: #007bff; color: white; }
+        .risk-siaga { background: #fd7e14; color: white; }
+        .risk-awas { background: #dc3545; color: white; }
+        #predictionMap {
+            height: 500px;
+            border-radius: 10px;
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+        .year-summary {
+            background: #fff;
+            border-left: 4px solid #eebbc3;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+        .table-responsive {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        /* Timeline and simulation styles */
+        .timeline-controls {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        
+        .form-control-range {
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, #28a745 0%, #fd7e14 50%, #dc3545 100%);
+            border-radius: 4px;
+            outline: none;
+            opacity: 0.8;
+        }
+        
+        .form-control-range:hover {
+            opacity: 1;
+        }
+        
+        .form-control-range::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #232946;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .form-control-range::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #232946;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .year-info-panel {
+            transition: background-color 0.3s ease, opacity 0.3s ease;
+        }
+        
+        /* Real-time animation effects */
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .pulse-animation {
+            animation: pulse 0.8s ease-in-out 3;
+        }
+        
+        /* Simulation indicator animation */
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+        
+        #simulation-indicator {
+            animation: blink 1s infinite;
+        }
+        
+        /* Map container ensuring visibility */
+        #predictionMap {
+            min-height: 500px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        
+        /* Button hover effects */
+        .btn-success:hover, .btn-warning:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Timeline year display */
+        #current-year-display {
+            font-weight: bold;
+            color: #232946;
+            font-size: 1.1rem;
+        }
+        
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .legend-item i {
+            margin-right: 5px;
+            font-size: 12px;
+        }
+        
+        .map-legend {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+                <div class="sidebar-sticky">
+                    <h5>Flood Prediction</h5>
+                    <hr>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/simulation">
+                                Simulation
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/prediction-10-years">
+                                Prediksi 10 Tahun
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/" data-toggle="modal" data-target="#trainModal">
+                                Training Model
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/" onclick="loadDataLatih()">
+                                Data Latih
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/" onclick="loadDataUji()">
+                                Data Uji
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Prediksi Potensi Banjir 10 Tahun Kedepan</h1>
+                </div>
+
+                <!-- Parameter Input Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Parameter Prediksi</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="predictionForm">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="startYear">Tahun Mulai:</label>
+                                        <select class="form-control" id="startYear">
+                                            <option value="2024">2024</option>
+                                            <option value="2025">2025</option>
+                                            <option value="2026">2026</option>
+                                            <option value="2027">2027</option>
+                                            <option value="2028">2028</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="region">Wilayah:</label>
+                                        <select class="form-control" id="region">
+                                            <option value="Langkahan" selected>Langkahan (Fokus Simulasi)</option>
+                                            <option value="Baktiya">Baktiya</option>
+                                            <option value="Lhoksukon">Lhoksukon</option>
+                                            <option value="Cot Girek">Cot Girek</option>
+                                            <option value="Matangkuli">Matangkuli</option>
+                                            <option value="Tanah Luas">Tanah Luas</option>
+                                            <option value="Stamet Aceh Utara">Stamet Aceh Utara</option>
+                                        </select>
+                                        <small class="form-text text-muted">Langkahan (4.9211586, 97.1261701) - Simulasi interaktif tersedia</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="scenario">Skenario Iklim:</label>
+                                        <select class="form-control" id="scenario">
+                                            <option value="normal">Normal</option>
+                                            <option value="optimistic">Optimis</option>
+                                            <option value="pessimistic">Pesimis</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <button type="button" class="btn btn-primary btn-lg" id="runPrediction">
+                                        <i class="fas fa-chart-line"></i> Jalankan Prediksi 10 Tahun
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div class="loading-spinner" id="loadingSpinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    <p class="mt-3">Sedang menghitung prediksi 10 tahun...</p>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultsSection" style="display: none;">
+                    
+                    <!-- Summary Cards -->
+                    <div class="row" id="summaryCards">
+                        <!-- Summary cards will be populated here -->
+                    </div>
+
+                    <!-- Trend Analysis -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Analisis Trend 10 Tahun</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="trendAnalysis">
+                                <!-- Trend analysis will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart Section -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Trend Risiko Tahunan</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="riskTrendChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Distribusi Tingkat Risiko</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="riskDistributionChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Map with Timeline -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Simulasi Banjir Bertahap - Prediksi 10 Tahun</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Timeline Controls -->
+                            <div class="timeline-controls" id="timeline-controls" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <label for="year-slider">Tahun Simulasi:</label>
+                                        <input type="range" class="form-control-range" id="year-slider" min="0" max="9" value="0" step="1">
+                                        <div class="d-flex justify-content-between">
+                                            <small id="start-year">2024</small>
+                                            <small id="current-year-display">2024</small>
+                                            <small id="end-year">2033</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button class="btn btn-success btn-sm" id="play-simulation">
+                                            <i class="fas fa-play"></i> Play Simulasi
+                                        </button>
+                                        <button class="btn btn-warning btn-sm" id="pause-simulation" style="display: none;">
+                                            <i class="fas fa-pause"></i> Pause
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" id="reset-simulation">
+                                            <i class="fas fa-refresh"></i> Reset
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Year Info Panel -->
+                                <div class="year-info-panel mt-3 p-3" style="background: #f8f9fa; border-radius: 8px;">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <strong>Tahun: <span id="info-year">2024</span></strong>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>Rata-rata Risiko: <span id="info-risk">-</span></strong>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>Status: <span id="info-status">-</span></strong>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>Bulan Berisiko: <span id="info-risky-months">-</span></strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Map Container -->
+                            <div id="predictionMap"></div>
+                            
+                            <!-- Legend -->
+                            <div class="map-legend">
+                                <h6>Legenda Risiko Banjir:</h6>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <span class="legend-item">
+                                            <i class="fas fa-circle" style="color: #28a745;"></i> Aman (0)
+                                        </span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <span class="legend-item">
+                                            <i class="fas fa-circle" style="color: #007bff;"></i> Waspada (1)
+                                        </span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <span class="legend-item">
+                                            <i class="fas fa-circle" style="color: #fd7e14;"></i> Siaga (2)
+                                        </span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <span class="legend-item">
+                                            <i class="fas fa-circle" style="color: #dc3545;"></i> Awas (3)
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Yearly Summary -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Ringkasan Tahunan</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="yearlySummary">
+                                <!-- Yearly summary will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Predictions Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Data Prediksi Lengkap</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover" id="predictionsTable">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th>Tahun</th>
+                                            <th>Bulan</th>
+                                            <th>Curah Hujan (mm)</th>
+                                            <th>Suhu (°C)</th>
+                                            <th>Tinggi Air (cm)</th>
+                                            <th>Prediksi</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Table data will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script>
+        let predictionMap;
+        let riskTrendChart;
+        let riskDistributionChart;
+        
+        // Global variables for map simulation
+        let simulationData = null;
+        let currentYearIndex = 0;
+        let simulationInterval = null;
+        let regionMarker = null;
+        let riskCircle = null;
+        let isMapInitialized = false;
+
+        // Initialize the page
+        $(document).ready(function() {
+            // Handle prediction button click
+            $('#runPrediction').click(function() {
+                runPrediction();
+            });
+        });
+
+        function runPrediction() {
+            const startYear = parseInt($('#startYear').val());
+            const region = $('#region').val();
+            const scenario = $('#scenario').val();
+
+            // Show loading spinner
+            $('#loadingSpinner').show();
+            $('#resultsSection').hide();
+            $('#runPrediction').prop('disabled', true);
+            $('#runPrediction').html('<span class="spinner-border spinner-border-sm" role="status"></span> Menghitung...');
+
+            // Call the prediction API
+            $.ajax({
+                url: '/simulate_10_years',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    start_year: startYear,
+                    region: region,
+                    scenario: scenario
+                }),
+                success: function(response) {
+                    displayResults(response);
+                    $('#loadingSpinner').hide();
+                    $('#resultsSection').show();
+                },
+                error: function(xhr, status, error) {
+                    let errorMsg = 'Terjadi kesalahan saat menjalankan prediksi.';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMsg = xhr.responseJSON.error;
+                    }
+                    alert('Error: ' + errorMsg);
+                    $('#loadingSpinner').hide();
+                },
+                complete: function() {
+                    $('#runPrediction').prop('disabled', false);
+                    $('#runPrediction').html('<i class="fas fa-chart-line"></i> Jalankan Prediksi 10 Tahun');
+                }
+            });
+        }
+
+        function displayResults(data) {
+            // Display summary cards
+            displaySummaryCards(data);
+            
+            // Display trend analysis
+            displayTrendAnalysis(data.trend_analysis);
+            
+            // Display charts
+            displayCharts(data.chart_data);
+            
+            // Initialize interactive map with simulation
+            displayPredMap(data.region, data.coordinates);
+            
+            // Initialize simulation controls and data
+            initializeSimulation(data);
+            
+            // Display yearly summary
+            displayYearlySummary(data.yearly_summary);
+            
+            // Display detailed table
+            displayPredictionsTable(data.predictions);
+        }
+
+        function displayPredMap(region, coordinates) {
+            console.log('Initializing map for region:', region, 'coordinates:', coordinates);
+            
+            // Clear existing map
+            if (predictionMap) {
+                predictionMap.remove();
+                predictionMap = null;
+            }
+            
+            // Ensure container exists and is visible
+            const mapContainer = document.getElementById('predictionMap');
+            if (!mapContainer) {
+                console.error('Map container not found!');
+                return;
+            }
+            
+            // Clear container
+            mapContainer.innerHTML = '';
+            
+            // Center map on the selected region (default to Langkahan)
+            const mapCenter = coordinates && coordinates[0] !== 0 ? coordinates : [4.9211586, 97.1261701];
+            
+            // Wait a bit for container to be ready
+            setTimeout(() => {
+                try {
+                    // Initialize Leaflet map
+                    predictionMap = L.map('predictionMap', {
+                        center: mapCenter,
+                        zoom: 13,
+                        zoomControl: true,
+                        scrollWheelZoom: true
+                    });
+                    
+                    // Add tile layer with error handling
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                        maxZoom: 18
+                    }).addTo(predictionMap);
+                    
+                    // Add initial marker for the region
+                    regionMarker = L.marker(mapCenter, {
+                        title: region,
+                        draggable: false
+                    }).addTo(predictionMap);
+                    
+                    // Set initial popup
+                    regionMarker.bindPopup(`
+                        <div style="text-align: center; min-width: 200px;">
+                            <h6><strong>${region}</strong></h6>
+                            <p>Koordinat: ${mapCenter[0].toFixed(6)}, ${mapCenter[1].toFixed(6)}</p>
+                            <small>Simulasi real-time tersedia</small>
+                        </div>
+                    `);
+                    
+                    isMapInitialized = true;
+                    console.log('Map initialized successfully');
+                    
+                    // Force map to resize
+                    setTimeout(() => {
+                        predictionMap.invalidateSize();
+                    }, 100);
+                    
+                } catch (error) {
+                    console.error('Error initializing map:', error);
+                    // Fallback to simple HTML
+                    mapContainer.innerHTML = `
+                        <div class="text-center p-4" style="background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; height: 100%;">
+                            <h5>${region}</h5>
+                            <p>Koordinat: ${mapCenter[0]}, ${mapCenter[1]}</p>
+                            <p><i class="fas fa-map-marker-alt" style="font-size: 48px; color: #eebbc3;"></i></p>
+                            <small>Peta akan dimuat setelah prediksi selesai</small>
+                        </div>
+                    `;
+                }
+            }, 100);
+        }
+
+        function initializeSimulation(data) {
+            console.log('Initializing simulation with data:', data);
+            simulationData = data;
+            
+            if (!data.yearly_summary || data.yearly_summary.length === 0) {
+                console.error('No yearly summary data available');
+                return;
+            }
+            
+            const startYear = data.yearly_summary[0].tahun;
+            const endYear = data.yearly_summary[data.yearly_summary.length - 1].tahun;
+            
+            // Update timeline controls
+            $('#start-year').text(startYear);
+            $('#end-year').text(endYear);
+            $('#current-year-display').text(startYear);
+            $('#info-year').text(startYear);
+            
+            // Setup slider range
+            $('#year-slider').attr('max', data.yearly_summary.length - 1);
+            $('#year-slider').val(0);
+            
+            // Setup event listeners with immediate feedback
+            $('#year-slider').off('input').on('input', function() {
+                currentYearIndex = parseInt($(this).val());
+                updateMapForYear(currentYearIndex);
+                updateYearInfo(currentYearIndex);
+                
+                // Real-time feedback
+                const currentYear = data.yearly_summary[currentYearIndex].tahun;
+                $('#current-year-display').text(currentYear);
+            });
+            
+            $('#play-simulation').off('click').on('click', startSimulation);
+            $('#pause-simulation').off('click').on('click', pauseSimulation);
+            $('#reset-simulation').off('click').on('click', resetSimulation);
+            
+            // Wait for map to be ready, then initialize
+            const waitForMap = () => {
+                if (isMapInitialized && predictionMap) {
+                    console.log('Map is ready, updating with first year data');
+                    currentYearIndex = 0;
+                    updateMapForYear(0);
+                    updateYearInfo(0);
+                    $('#timeline-controls').fadeIn(500);
+                } else {
+                    console.log('Waiting for map to be ready...');
+                    setTimeout(waitForMap, 200);
+                }
+            };
+            
+            waitForMap();
+        }
+
+        function updateMapForYear(yearIndex) {
+            console.log('Updating map for year index:', yearIndex);
+            
+            if (!simulationData || !simulationData.yearly_summary[yearIndex]) {
+                console.error('No data for year index:', yearIndex);
+                return;
+            }
+            
+            if (!predictionMap || !isMapInitialized) {
+                console.log('Map not ready, skipping update');
+                return;
+            }
+            
+            const yearData = simulationData.yearly_summary[yearIndex];
+            const region = simulationData.region;
+            const coordinates = simulationData.coordinates || [4.9211586, 97.1261701];
+            
+            console.log('Updating year:', yearData.tahun, 'risk:', yearData.tingkat_risiko);
+            
+            // Update slider position and display (real-time)
+            $('#year-slider').val(yearIndex);
+            $('#current-year-display').text(yearData.tahun);
+            
+            // Remove existing risk circle with fade effect
+            if (riskCircle) {
+                riskCircle.setStyle({ fillOpacity: 0, opacity: 0 });
+                setTimeout(() => {
+                    if (riskCircle && predictionMap) {
+                        predictionMap.removeLayer(riskCircle);
+                        riskCircle = null;
+                    }
+                }, 150);
+            }
+            
+            // Color mapping based on risk level (real-time colors)
+            const riskColors = {
+                'Rendah': '#28a745',   // Green
+                'Sedang': '#fd7e14',   // Orange
+                'Tinggi': '#dc3545'    // Red
+            };
+            
+            const riskColor = riskColors[yearData.tingkat_risiko] || '#6c757d';
+            
+            // Calculate dynamic radius based on risk (real-time sizing)
+            const baseRadius = 800;
+            const riskMultiplier = Math.max(0.5, yearData.rata_rata_risiko);
+            const riskRadius = baseRadius + (riskMultiplier * 400);
+            
+            // Add new risk circle with smooth animation
+            setTimeout(() => {
+                if (predictionMap && isMapInitialized) {
+                    riskCircle = L.circle(coordinates, {
+                        color: riskColor,
+                        fillColor: riskColor,
+                        fillOpacity: 0,
+                        opacity: 0,
+                        radius: riskRadius,
+                        weight: 3
+                    }).addTo(predictionMap);
+                    
+                    // Animate circle appearance (real-time effect)
+                    let opacity = 0;
+                    const animateCircle = () => {
+                        opacity += 0.05;
+                        if (opacity <= 0.4 && riskCircle) {
+                            riskCircle.setStyle({
+                                fillOpacity: opacity,
+                                opacity: Math.min(opacity * 2, 0.8)
+                            });
+                            requestAnimationFrame(animateCircle);
+                        }
+                    };
+                    requestAnimationFrame(animateCircle);
+                }
+            }, 100);
+            
+            // Get region information for enhanced popup
+            const regionInfo = simulationData.region_info || {};
+            
+            // Update marker popup with real-time data
+            const popupContent = `
+                <div style="text-align: center; min-width: 280px;">
+                    <h6><strong>${region}</strong></h6>
+                    <small style="color: #6c757d;">${regionInfo.description || 'Simulasi Prediksi Banjir'}</small>
+                    <hr style="margin: 8px 0;">
+                    <div style="text-align: left;">
+                        <strong>📅 Tahun:</strong> ${yearData.tahun}<br>
+                        <strong>📍 Koordinat:</strong> ${coordinates[0].toFixed(6)}, ${coordinates[1].toFixed(6)}<br>
+                        <strong>📊 Rata-rata Risiko:</strong> ${yearData.rata_rata_risiko}<br>
+                        <strong>⚠️ Tingkat Risiko:</strong> <span style="color: ${riskColor}; font-weight: bold; font-size: 1.1em;">${yearData.tingkat_risiko}</span><br>
+                        <strong>🔴 Risiko Tertinggi:</strong> ${yearData.risiko_tertinggi}<br>
+                        <strong>📅 Bulan Berisiko:</strong> ${yearData.bulan_berisiko} bulan<br>
+                        ${regionInfo.population ? `<strong>👥 Populasi:</strong> ${regionInfo.population}<br>` : ''}
+                    </div>
+                    <hr style="margin: 8px 0;">
+                    <small style="color: #6c757d;">
+                        <i class="fas fa-play"></i> Real-time simulation active
+                    </small>
+                </div>
+            `;
+            
+            if (regionMarker && predictionMap) {
+                regionMarker.bindPopup(popupContent);
+                // Auto-open popup for real-time feedback
+                if (simulationInterval) {
+                    regionMarker.openPopup();
+                }
+            }
+            
+            // Real-time visual feedback - flash effect
+            const infoPanel = $('.year-info-panel');
+            infoPanel.css('background-color', riskColor);
+            infoPanel.css('opacity', '0.9');
+            setTimeout(() => {
+                infoPanel.css('background-color', '#f8f9fa');
+                infoPanel.css('opacity', '1');
+            }, 300);
+        }
+
+        function updateYearInfo(yearIndex) {
+            if (!simulationData || !simulationData.yearly_summary[yearIndex]) return;
+            
+            const yearData = simulationData.yearly_summary[yearIndex];
+            
+            // Real-time updates with smooth animations
+            $('#info-year').text(yearData.tahun);
+            $('#info-risk').text(yearData.rata_rata_risiko);
+            $('#info-status').text(yearData.tingkat_risiko);
+            $('#info-risky-months').text(yearData.bulan_berisiko);
+            
+            // Update status color with real-time feedback
+            const statusColors = {
+                'Rendah': '#28a745',
+                'Sedang': '#fd7e14',
+                'Tinggi': '#dc3545'
+            };
+            
+            const statusColor = statusColors[yearData.tingkat_risiko] || '#6c757d';
+            $('#info-status').css('color', statusColor);
+            
+            // Add real-time pulse effect for high risk
+            if (yearData.tingkat_risiko === 'Tinggi') {
+                $('#info-status').addClass('pulse-animation');
+                setTimeout(() => $('#info-status').removeClass('pulse-animation'), 1000);
+            }
+            
+            // Real-time progress indicator
+            const progressPercent = ((yearIndex + 1) / simulationData.yearly_summary.length) * 100;
+            if (!$('.simulation-progress').length) {
+                $('.year-info-panel').append(`
+                    <div class="simulation-progress mt-2">
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                `);
+            }
+            $('.simulation-progress .progress-bar').css('width', progressPercent + '%');
+        }
+
+        function startSimulation() {
+            if (simulationInterval) return; // Already running
+            
+            console.log('Starting real-time simulation');
+            $('#play-simulation').hide();
+            $('#pause-simulation').show();
+            
+            // Add real-time simulation indicator
+            $('body').append(`
+                <div id="simulation-indicator" style="
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #dc3545;
+                    color: white;
+                    padding: 8px 15px;
+                    border-radius: 20px;
+                    z-index: 10000;
+                    animation: pulse 1s infinite;
+                ">
+                    🔴 LIVE SIMULATION
+                </div>
+            `);
+            
+            // Real-time simulation with smoother intervals
+            simulationInterval = setInterval(() => {
+                currentYearIndex++;
+                
+                if (currentYearIndex >= simulationData.yearly_summary.length) {
+                    // End of simulation
+                    pauseSimulation();
+                    currentYearIndex = simulationData.yearly_summary.length - 1;
+                    return;
+                }
+                
+                // Real-time updates
+                updateMapForYear(currentYearIndex);
+                updateYearInfo(currentYearIndex);
+                
+                // Real-time visual feedback for high risk
+                if (simulationData.yearly_summary[currentYearIndex].tingkat_risiko === 'Tinggi') {
+                    // Visual alert for high risk
+                    $('body').css('background-color', 'rgba(220, 53, 69, 0.1)');
+                    setTimeout(() => $('body').css('background-color', ''), 200);
+                }
+                
+            }, 1200); // Faster real-time updates every 1.2 seconds
+        }
+
+        function pauseSimulation() {
+            console.log('Pausing simulation');
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+            }
+            
+            $('#play-simulation').show();
+            $('#pause-simulation').hide();
+            
+            // Remove real-time indicator
+            $('#simulation-indicator').remove();
+            
+            // Reset background
+            $('body').css('background-color', '');
+        }
+
+        function resetSimulation() {
+            console.log('Resetting simulation');
+            pauseSimulation();
+            currentYearIndex = 0;
+            
+            // Reset to first year with smooth transition
+            updateMapForYear(0);
+            updateYearInfo(0);
+            
+            // Reset progress bar
+            $('.simulation-progress .progress-bar').css('width', '0%');
+            
+            // Close any open popups
+            if (predictionMap && regionMarker) {
+                predictionMap.closePopup();
+            }
+            
+            // Visual feedback for reset
+            $('.year-info-panel').css('background-color', '#28a745');
+            setTimeout(() => {
+                $('.year-info-panel').css('background-color', '#f8f9fa');
+            }, 500);
+        }
+
+        function displaySummaryCards(data) {
+            const summaryData = data.yearly_summary;
+            const avgRisk = (summaryData.reduce((sum, year) => sum + year.rata_rata_risiko, 0) / summaryData.length).toFixed(2);
+            const criticalYears = data.trend_analysis.critical_years.length;
+            const safeYears = data.trend_analysis.safe_years.length;
+
+            const cardsHtml = `
+                <div class="col-md-3">
+                    <div class="prediction-card text-center">
+                        <h3>${avgRisk}</h3>
+                        <p>Rata-rata Risiko</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="prediction-card text-center">
+                        <h3>${criticalYears}</h3>
+                        <p>Tahun Kritis</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="prediction-card text-center">
+                        <h3>${safeYears}</h3>
+                        <p>Tahun Aman</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="prediction-card text-center">
+                        <h3>${data.trend_analysis.trend_direction}</h3>
+                        <p>Trend Risiko</p>
+                    </div>
+                </div>
+            `;
+            
+            $('#summaryCards').html(cardsHtml);
+        }
+
+        function displayTrendAnalysis(trendData) {
+            const analysisHtml = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Trend Umum:</h6>
+                        <p>Risiko banjir menunjukkan trend <strong>${trendData.trend_direction}</strong>
+                        dengan perubahan sebesar <strong>${trendData.risk_increase}%</strong> selama 10 tahun.</p>
+                        
+                        <h6>Tahun Kritis:</h6>
+                        ${trendData.critical_years.length > 0 ?
+                            `<p>Tahun dengan risiko tinggi: <strong>${trendData.critical_years.join(', ')}</strong></p>` :
+                            '<p>Tidak ada tahun dengan risiko kritis yang teridentifikasi.</p>'
+                        }
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Tahun Aman:</h6>
+                        ${trendData.safe_years.length > 0 ?
+                            `<p>Tahun dengan risiko rendah: <strong>${trendData.safe_years.join(', ')}</strong></p>` :
+                            '<p>Tidak ada tahun dengan risiko rendah yang teridentifikasi.</p>'
+                        }
+                        
+                        <h6>Rekomendasi:</h6>
+                        <p>Monitoring intensif diperlukan terutama pada tahun-tahun kritis.
+                        Persiapan mitigasi bencana sebaiknya diperkuat menjelang periode tersebut.</p>
+                    </div>
+                </div>
+            `;
+            
+            $('#trendAnalysis').html(analysisHtml);
+        }
+
+        function displayCharts(chartData) {
+            // Risk Trend Chart
+            if (riskTrendChart) riskTrendChart.destroy();
+            
+            const ctx1 = document.getElementById('riskTrendChart').getContext('2d');
+            riskTrendChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: chartData.years,
+                    datasets: [{
+                        label: 'Rata-rata Risiko',
+                        data: chartData.avg_risks,
+                        borderColor: '#eebbc3',
+                        backgroundColor: 'rgba(238, 187, 195, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Risiko Maksimum',
+                        data: chartData.max_risks,
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 3,
+                            ticks: {
+                                callback: function(value) {
+                                    const labels = ['Aman', 'Waspada', 'Siaga', 'Awas'];
+                                    return labels[value] || value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Risk Distribution Chart
+            if (riskDistributionChart) riskDistributionChart.destroy();
+            
+            const riskCounts = [0, 0, 0, 0];
+            chartData.avg_risks.forEach(risk => {
+                riskCounts[Math.round(risk)]++;
+            });
+
+            const ctx2 = document.getElementById('riskDistributionChart').getContext('2d');
+            riskDistributionChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Aman', 'Waspada', 'Siaga', 'Awas'],
+                    datasets: [{
+                        data: riskCounts,
+                        backgroundColor: ['#28a745', '#007bff', '#fd7e14', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function displayYearlySummary(summaryData) {
+            let summaryHtml = '';
+            
+            summaryData.forEach(year => {
+                const riskClass = year.tingkat_risiko.toLowerCase();
+                summaryHtml += `
+                    <div class="year-summary">
+                        <div class="row">
+                            <div class="col-md-2">
+                                <h5>${year.tahun}</h5>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="badge badge-${riskClass === 'tinggi' ? 'danger' : riskClass === 'sedang' ? 'warning' : 'success'}">
+                                    ${year.tingkat_risiko}
+                                </span>
+                            </div>
+                            <div class="col-md-7">
+                                <small>
+                                    Rata-rata risiko: ${year.rata_rata_risiko} |
+                                    Risiko tertinggi: ${year.risiko_tertinggi} |
+                                    Bulan berisiko: ${year.bulan_berisiko}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            $('#yearlySummary').html(summaryHtml);
+        }
+
+        function displayPredictionsTable(predictions) {
+            let tableHtml = '';
+            
+            predictions.forEach(pred => {
+                const riskBadgeClass = `risk-${pred.prediksi_label.toLowerCase()}`;
+                
+                tableHtml += `
+                    <tr>
+                        <td>${pred.tahun}</td>
+                        <td>${pred.bulan}</td>
+                        <td>${pred.curah_hujan}</td>
+                        <td>${pred.suhu}</td>
+                        <td>${pred.tinggi_air}</td>
+                        <td>${pred.prediksi_value}</td>
+                        <td><span class="risk-badge ${riskBadgeClass}">${pred.prediksi_label}</span></td>
+                    </tr>
+                `;
+            });
+            
+            $('#predictionsTable tbody').html(tableHtml);
+        }
+    </script>
+</body>
+</html>
